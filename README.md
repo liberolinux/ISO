@@ -78,7 +78,7 @@ Libero GNU/Linux Admin CD is a specialized live distribution based on Gentoo Lin
 ### Download Pre-built ISO
 ```bash
 # Download the latest release
-wget https://github.com/yourusername/libero-admincd/releases/latest/libero-admincd-i486-1.0.iso
+wget https://github.com/liberolinux/ISO/releases/download/v1.0/libero-admincd-i486-1.0.iso
 
 # Verify checksum (if provided)
 sha256sum libero-admincd-i486-1.0.iso
