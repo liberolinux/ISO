@@ -4,7 +4,7 @@
 # License: GPL-3.0
 
 DISTRO_NAME = Libero
-VERSION = 1.0
+VERSION = 1.1
 ARCH = i486
 ISO_NAME = libero-admincd-$(ARCH)-$(VERSION).iso
 
