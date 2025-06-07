@@ -4,7 +4,7 @@
 
 ![Libero GNU/Linux](https://img.shields.io/badge/Libero-GNU%2FLinux-1f425f.svg)
 ![Architecture](https://img.shields.io/badge/arch-i486-blue.svg)
-![Version](https://img.shields.io/badge/version-1.0-green.svg)
+![Version](https://img.shields.io/badge/version-1.1-green.svg)
 ![License](https://img.shields.io/badge/license-GPL--3.0-orange.svg)
 ![Based on](https://img.shields.io/badge/based%20on-Gentoo%20Linux-purple.svg)
 
@@ -78,27 +78,24 @@ Libero GNU/Linux Admin CD is a specialized live distribution based on Gentoo Lin
 ### Download Pre-built ISO
 ```bash
 # Download the latest release
-wget https://github.com/liberolinux/ISO/releases/download/v1.0/libero-admincd-i486-1.0.iso
-
-# Verify checksum (if provided)
-sha256sum libero-admincd-i486-1.0.iso
+wget https://github.com/liberolinux/ISO/releases/download/v1.1/libero-admincd-i486-1.1.iso
 ```
 
 ### Boot the ISO
 1. **Burn to CD/DVD** or **write to USB drive**
 2. **Boot from the media**
 3. **Select boot mode** at GRUB menu:
-   - "Libero GNU/Linux 1.0 - Admin CD" (maintenance mode)
-   - "Libero GNU/Linux 1.0 - Installer" (installation mode)
+   - "Libero GNU/Linux 1.1 - Admin CD" (maintenance mode)
+   - "Libero GNU/Linux 1.1 - Installer" (installation mode)
 
 ### Test with QEMU
 ```bash
 # Quick test
-qemu-system-i386 -m 1024 -cdrom libero-admincd-i486-1.0.iso
+qemu-system-i386 -m 1024 -cdrom libero-admincd-i486-1.1.iso
 
 # Test with virtual hard drive
 qemu-img create -f qcow2 test-hd.qcow2 10G
-qemu-system-i386 -m 1024 -hda test-hd.qcow2 -cdrom libero-admincd-i486-1.0.iso
+qemu-system-i386 -m 1024 -hda test-hd.qcow2 -cdrom libero-admincd-i486-1.1.iso
 ```
 
 ## 🔨 Build Process
@@ -183,7 +180,7 @@ Libero_Installation_CD/
 │   ├── chroot/         # Gentoo chroot environment
 │   ├── iso/            # ISO staging area
 │   └── stage3/         # Gentoo stage3 files
-└── libero-admincd-i486-1.0.iso  # Final ISO output
+└── libero-admincd-i486-1.1.iso  # Final ISO output
 ```
 
 ### Available Make Targets
@@ -193,7 +190,7 @@ make check-deps          # Verify build dependencies
 make download            # Download Gentoo components
 make prepare             # Prepare build environment
 make chroot              # Set up chroot environment
-make prepare-installer   # Configure gentoo-install
+make prepare-installer   # Configure libero-install
 make install-libero      # Install system packages
 make setup-grub          # Configure bootloader
 make squashfs           # Create compressed filesystem
@@ -301,7 +298,7 @@ We welcome contributions! Here's how you can help:
 ## 📚 Documentation
 
 - **Homepage**: https://libero.eu.org
-- **Gentoo Install Framework**: https://github.com/oddlama/gentoo-install
+- **Libero Install Framework**: https://github.com/oddlama/gentoo-install
 - **Gentoo Documentation**: https://wiki.gentoo.org
 - **systemd Documentation**: https://systemd.io
 
