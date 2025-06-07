@@ -85,7 +85,7 @@ chroot:
 prepare-installer:
 	@echo "Preparing gentoo-install for Libero..."
 	sudo mkdir -p $(CHROOT_DIR)/opt/libero-installer
-	@echo "Downloading and configuring gentoo-install..."
+	@echo "Downloading and configuring libero-install..."
 	cd $(WORK_DIR) && wget https://github.com/liberolinux/libero-install/archive/refs/heads/main.zip -O libero-install.zip || { echo "Failed to download libero-install"; exit 1; }
 	cd $(WORK_DIR) && unzip -q libero-install.zip
 	sudo cp -r $(WORK_DIR)/libero-install-main/* $(CHROOT_DIR)/opt/libero-installer/
