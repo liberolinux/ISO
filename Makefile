@@ -86,9 +86,9 @@ prepare-installer:
 	@echo "Preparing gentoo-install for Libero..."
 	sudo mkdir -p $(CHROOT_DIR)/opt/libero-installer
 	@echo "Downloading and configuring gentoo-install..."
-	cd $(WORK_DIR) && wget https://github.com/oddlama/gentoo-install/archive/refs/heads/main.zip -O gentoo-install.zip || { echo "Failed to download gentoo-install"; exit 1; }
-	cd $(WORK_DIR) && unzip -q gentoo-install.zip
-	sudo cp -r $(WORK_DIR)/gentoo-install-main/* $(CHROOT_DIR)/opt/libero-installer/
+	cd $(WORK_DIR) && wget https://github.com/liberolinux/libero-install/archive/refs/heads/main.zip -O libero-install.zip || { echo "Failed to download libero-install"; exit 1; }
+	cd $(WORK_DIR) && unzip -q libero-install.zip
+	sudo cp -r $(WORK_DIR)/libero-install-main/* $(CHROOT_DIR)/opt/libero-installer/
 
 install-libero:
 	@echo "Installing Libero GNU/Linux required packages..."
@@ -198,13 +198,13 @@ setup-grub:
 	sudo sh -c 'echo "" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "menuentry \"$(DISTRO_NAME) GNU/Linux $(VERSION) - Admin CD\" {" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "    set root=(cd)" >> $(ISO_DIR)/boot/grub/grub.cfg'
-	sudo sh -c 'echo "    linux /boot/vmlinuz root=live:CDLABEL=LIBERO_10 rd.live.image rd.live.dir=/ rd.live.squashimg=image.squashfs libero.mode=admin quiet loglevel=7" >> $(ISO_DIR)/boot/grub/grub.cfg'
+	sudo sh -c 'echo "    linux /boot/vmlinuz root=live:CDLABEL=LIBERO_11 rd.live.image rd.live.dir=/ rd.live.squashimg=image.squashfs libero.mode=admin quiet loglevel=7" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "    initrd /boot/initrd" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "}" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "menuentry \"$(DISTRO_NAME) GNU/Linux $(VERSION) - Installer\" {" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "    set root=(cd)" >> $(ISO_DIR)/boot/grub/grub.cfg'
-	sudo sh -c 'echo "    linux /boot/vmlinuz root=live:CDLABEL=LIBERO_10 rd.live.image rd.live.dir=/ rd.live.squashimg=image.squashfs libero.mode=installer quiet loglevel=7" >> $(ISO_DIR)/boot/grub/grub.cfg'
+	sudo sh -c 'echo "    linux /boot/vmlinuz root=live:CDLABEL=LIBERO_11 rd.live.image rd.live.dir=/ rd.live.squashimg=image.squashfs libero.mode=installer quiet loglevel=7" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "    initrd /boot/initrd" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "}" >> $(ISO_DIR)/boot/grub/grub.cfg'
 
@@ -230,7 +230,7 @@ build-iso:
 	@echo "Creating GRUB boot image..."
 
 	if sudo grub-mkrescue --output=$(ISO_NAME) $(ISO_DIR) \
-		--volid="LIBERO_10" \
+		--volid="LIBERO_11" \
 		--product-name="$(DISTRO_NAME)" \
 		--product-version="$(VERSION)"; then \
 		echo "ISO created successfully with grub-mkrescue"; \
@@ -251,12 +251,12 @@ build-iso:
 			echo "GRUB files not found, using xorriso without GRUB boot..."; \
 		fi; \
 		if [ -f $(ISO_DIR)/boot/grub/eltorito.img ]; then \
-			sudo xorriso -as mkisofs -r -J -V "LIBERO_10" \
+			sudo xorriso -as mkisofs -r -J -V "LIBERO_11" \
 				-b boot/grub/eltorito.img -c boot/grub/boot.cat \
 				-no-emul-boot -boot-load-size 4 -boot-info-table \
 				-o $(ISO_NAME) $(ISO_DIR); \
 		else \
-			sudo xorriso -as mkisofs -r -J -V "LIBERO_10" \
+			sudo xorriso -as mkisofs -r -J -V "LIBERO_11" \
 				-o $(ISO_NAME) $(ISO_DIR); \
 		fi; \
 	fi
