@@ -95,8 +95,34 @@ install-libero:
 
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "emerge --sync"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'MAKEOPTS=\"-j$(shell nproc)\"' >> /etc/portage/make.conf"
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "emerge --update --deep --newuse @world"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "mkdir -p /etc/portage/package.use && echo '>=sys-kernel/installkernel-50 dracut' >> /etc/portage/package.use/installkernel"
+	
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "sed -i 's/^#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "locale-gen"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "eselect locale set en_US.utf8"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "env-update && source /etc/profile"
+
+	@echo "Setting up GPG verification for binary packages..."
+	
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "getuto"
+
+	@echo "Configuring binary packages for faster builds..."
+
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'FEATURES=\"getbinpkg binpkg-logs\"' >> /etc/portage/make.conf"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'PORTAGE_BINHOST=\"https://distfiles.gentoo.org/releases/x86/binpackages/23.0/i486/\"' >> /etc/portage/make.conf"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'EMERGE_DEFAULT_OPTS=\"--getbinpkg --usepkg\"' >> /etc/portage/make.conf"
+
+	@echo "Installing documentation tools first..."
+
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "emerge --ask dev-python/docutils"
+
+	@echo "Installing required Linux Firmware for $(DISTRO_NAME)..."
+
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'sys-kernel/linux-firmware @BINARY-REDISTRIBUTABLE' >> /etc/portage/package.license"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "emerge --ask sys-kernel/linux-firmware"
+
+	@echo "Installing required packages for $(DISTRO_NAME)..."
+
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "emerge --ask $(LFS_PACKAGES)"
 
 	@echo "Configuring network and hostname..."
@@ -152,6 +178,7 @@ install-libero:
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "chmod +x /opt/libero-installer/configure"
 
 	@echo "Enabling network services..."
+
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "systemctl enable dhcpcd.service"
 
 	@echo "Creating systemd service for auto-installation..."
@@ -190,21 +217,37 @@ setup-grub:
 	sudo mkdir -p $(ISO_DIR)/boot/grub
 	sudo sh -c 'echo "set default=0" > $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "set timeout=10" >> $(ISO_DIR)/boot/grub/grub.cfg'
+	
+	sudo sh -c 'echo "# Solarized Light Theme for GRUB" >> $(ISO_DIR)/boot/grub/grub.cfg'
+	sudo sh -c 'echo "# Base colors: light background with dark text" >> $(ISO_DIR)/boot/grub/grub.cfg'
+	sudo sh -c 'echo "set color_normal=dark-gray/light-gray" >> $(ISO_DIR)/boot/grub/grub.cfg'
+	sudo sh -c 'echo "set color_highlight=white/cyan" >> $(ISO_DIR)/boot/grub/grub.cfg'
+	sudo sh -c 'echo "set menu_color_normal=dark-gray/light-gray" >> $(ISO_DIR)/boot/grub/grub.cfg'
+	sudo sh -c 'echo "set menu_color_highlight=white/cyan" >> $(ISO_DIR)/boot/grub/grub.cfg'
+	sudo sh -c 'echo "set gfxpayload=keep" >> $(ISO_DIR)/boot/grub/grub.cfg'
+	
 	sudo sh -c 'echo "insmod all_video" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "insmod gzio" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "insmod part_msdos" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "insmod iso9660" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "insmod squash4" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "" >> $(ISO_DIR)/boot/grub/grub.cfg'
+	
+	# Add a visual separator for the Solarized theme
+	sudo sh -c 'echo "# =================================" >> $(ISO_DIR)/boot/grub/grub.cfg'
+	sudo sh -c 'echo "#   Libero GNU/Linux Boot Menu     " >> $(ISO_DIR)/boot/grub/grub.cfg'
+	sudo sh -c 'echo "# =================================" >> $(ISO_DIR)/boot/grub/grub.cfg'
+	sudo sh -c 'echo "" >> $(ISO_DIR)/boot/grub/grub.cfg'
+	
 	sudo sh -c 'echo "menuentry \"$(DISTRO_NAME) GNU/Linux $(VERSION) - Admin CD\" {" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "    set root=(cd)" >> $(ISO_DIR)/boot/grub/grub.cfg'
-	sudo sh -c 'echo "    linux /boot/vmlinuz root=live:CDLABEL=LIBERO_11 rd.live.image rd.live.dir=/ rd.live.squashimg=image.squashfs libero.mode=admin quiet loglevel=7" >> $(ISO_DIR)/boot/grub/grub.cfg'
+	sudo sh -c 'echo "    linux /boot/vmlinuz root=live:CDLABEL=LIBERO_11 rd.live.image rd.live.dir=/ rd.live.squashimg=image.squashfs libero.mode=admin quiet loglevel=0" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "    initrd /boot/initrd" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "}" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "menuentry \"$(DISTRO_NAME) GNU/Linux $(VERSION) - Installer\" {" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "    set root=(cd)" >> $(ISO_DIR)/boot/grub/grub.cfg'
-	sudo sh -c 'echo "    linux /boot/vmlinuz root=live:CDLABEL=LIBERO_11 rd.live.image rd.live.dir=/ rd.live.squashimg=image.squashfs libero.mode=installer quiet loglevel=7" >> $(ISO_DIR)/boot/grub/grub.cfg'
+	sudo sh -c 'echo "    linux /boot/vmlinuz root=live:CDLABEL=LIBERO_11 rd.live.image rd.live.dir=/ rd.live.squashimg=image.squashfs libero.mode=installer quiet loglevel=0" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "    initrd /boot/initrd" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "}" >> $(ISO_DIR)/boot/grub/grub.cfg'
 
