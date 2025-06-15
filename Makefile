@@ -4,7 +4,7 @@
 # License: GPL-3.0
 
 DISTRO_NAME = Libero
-VERSION = 1.1
+VERSION = 1.2
 ARCH = i486
 ISO_NAME = libero-admincd-$(ARCH)-$(VERSION).iso
 
@@ -27,12 +27,31 @@ LFS_PACKAGES = \
     net-misc/dhcpcd \
     net-wireless/wpa_supplicant \
     sys-fs/dosfstools \
+	sys-fs/squashfs-tools \
+	sys-fs/lvm2 \
+	sys-fs/xfsprogs \
+	sys-fs/ntfs3g \
     sys-block/parted \
 	dev-util/dialog \
 	net-misc/ntp \
 	sys-apps/gptfdisk \
 	sys-fs/cryptsetup \
-	sys-fs/mdadm
+	sys-fs/mdadm \
+	app-shells/fish \
+	app-misc/tmux \
+	app-misc/tmux-mem-cpu-load \
+	sys-process/htop \
+	dev-vcs/git \
+	app-editors/vim \
+	app-editors/emacs \
+	net-analyzer/nmap \
+	sys-apps/ethtool \
+	mail-client/mutt \
+	net-irc/ircii \
+	net-vpn/tor \
+	net-ftp/ftp \
+	net-misc/openssh \
+	app-misc/neofetch
 
 # QEMU options
 QEMU_MEMORY = 2048
@@ -148,7 +167,7 @@ install-libero:
 	@echo "Configuring Live CD initramfs..."
 
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "mkdir -p /etc/dracut.conf.d"
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'add_dracutmodules+=\" dmsquash-live livenet network base dm \"' > /etc/dracut.conf.d/livecd.conf"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'add_dracutmodules+=\" dmsquash-live network base dm \"' > /etc/dracut.conf.d/livecd.conf"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'filesystems+=\" squashfs iso9660 overlay tmpfs \"' >> /etc/dracut.conf.d/livecd.conf"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'drivers+=\" cdrom sr_mod loop dm-mod overlay \"' >> /etc/dracut.conf.d/livecd.conf"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'compress=\"zstd\"' >> /etc/dracut.conf.d/livecd.conf"
@@ -171,6 +190,131 @@ install-libero:
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '[Service]' >> /etc/systemd/system/getty@tty1.service.d/autologin.conf"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'ExecStart=' >> /etc/systemd/system/getty@tty1.service.d/autologin.conf"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'ExecStart=-/sbin/agetty --autologin root --noclear %I \$$TERM' >> /etc/systemd/system/getty@tty1.service.d/autologin.conf"
+
+	@echo "Change Shell for root and libero user to fish..."
+
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "chsh -s /usr/bin/fish root"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "chsh -s /usr/bin/fish libero"
+
+	@echo "Configuring fish shell for root and libero user..."
+
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "mkdir -p /root/.config/fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "mkdir -p /home/libero/.config/fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'set -g fish_greeting \"Welcome to Libero GNU/Linux $(VERSION)!\"' > /root/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'set -g fish_greeting \"Welcome to Libero GNU/Linux $(VERSION)!\"' > /home/libero/.config/fish/config.fish"
+
+	@echo "Setting up Solarized Light terminal colors for admin mode..."
+
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '# Solarized Light terminal colors for admin mode' >> /root/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'if string match -q \"*libero.mode=admin*\" (cat /proc/cmdline 2>/dev/null || echo \"\")' >> /root/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    # Solarized Light color palette' >> /root/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    printf \"\\033]4;0;#073642\\007\"   # base02' >> /root/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    printf \"\\033]4;1;#dc322f\\007\"   # red' >> /root/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    printf \"\\033]4;2;#859900\\007\"   # green' >> /root/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    printf \"\\033]4;3;#b58900\\007\"   # yellow' >> /root/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    printf \"\\033]4;4;#268bd2\\007\"   # blue' >> /root/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    printf \"\\033]4;5;#d33682\\007\"   # magenta' >> /root/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    printf \"\\033]4;6;#2aa198\\007\"   # cyan' >> /root/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    printf \"\\033]4;7;#eee8d5\\007\"   # base2' >> /root/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    printf \"\\033]4;8;#002b36\\007\"   # base03' >> /root/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    printf \"\\033]4;9;#cb4b16\\007\"   # orange' >> /root/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    printf \"\\033]4;10;#586e75\\007\"  # base01' >> /root/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    printf \"\\033]4;11;#657b83\\007\"  # base00' >> /root/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    printf \"\\033]4;12;#839496\\007\"  # base0' >> /root/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    printf \"\\033]4;13;#6c71c4\\007\"  # violet' >> /root/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    printf \"\\033]4;14;#93a1a1\\007\"  # base1' >> /root/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    printf \"\\033]4;15;#fdf6e3\\007\"  # base3' >> /root/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    # Set foreground and background' >> /root/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    printf \"\\033]10;#657b83\\007\"     # foreground' >> /root/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    printf \"\\033]11;#fdf6e3\\007\"     # background' >> /root/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    # Set custom fish prompt colors' >> /root/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    set -g fish_color_cwd black' >> /root/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'end' >> /root/.config/fish/config.fish"
+
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '# Solarized Light terminal colors for admin mode' >> /home/libero/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'if string match -q \"*libero.mode=admin*\" (cat /proc/cmdline 2>/dev/null || echo \"\")' >> /home/libero/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    # Solarized Light color palette' >> /home/libero/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    printf \"\\033]4;0;#073642\\007\"   # base02' >> /home/libero/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    printf \"\\033]4;1;#dc322f\\007\"   # red' >> /home/libero/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    printf \"\\033]4;2;#859900\\007\"   # green' >> /home/libero/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    printf \"\\033]4;3;#b58900\\007\"   # yellow' >> /home/libero/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    printf \"\\033]4;4;#268bd2\\007\"   # blue' >> /home/libero/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    printf \"\\033]4;5;#d33682\\007\"   # magenta' >> /home/libero/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    printf \"\\033]4;6;#2aa198\\007\"   # cyan' >> /home/libero/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    printf \"\\033]4;7;#eee8d5\\007\"   # base2' >> /home/libero/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    printf \"\\033]4;8;#002b36\\007\"   # base03' >> /home/libero/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    printf \"\\033]4;9;#cb4b16\\007\"   # orange' >> /home/libero/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    printf \"\\033]4;10;#586e75\\007\"  # base01' >> /home/libero/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    printf \"\\033]4;11;#657b83\\007\"  # base00' >> /home/libero/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    printf \"\\033]4;12;#839496\\007\"  # base0' >> /home/libero/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    printf \"\\033]4;13;#6c71c4\\007\"  # violet' >> /home/libero/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    printf \"\\033]4;14;#93a1a1\\007\"  # base1' >> /home/libero/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    printf \"\\033]4;15;#fdf6e3\\007\"  # base3' >> /home/libero/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    # Set foreground and background' >> /home/libero/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    printf \"\\033]10;#657b83\\007\"     # foreground' >> /home/libero/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    printf \"\\033]11;#fdf6e3\\007\"     # background' >> /home/libero/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    # Set custom fish prompt colors' >> /home/libero/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    set -g fish_color_cwd black' >> /home/libero/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'end' >> /home/libero/.config/fish/config.fish"
+
+	@echo "Make tmux load after Root Login..."
+
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'if status is-login' >> /root/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    cd \$$HOME' >> /root/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'end' >> /root/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '' >> /root/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'if status is-interactive; and not set -q TMUX' >> /root/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '                exec tmux' >> /root/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'end' >> /root/.config/fish/config.fish"
+
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'if status is-login' >> /home/libero/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    cd \$$HOME' >> /home/libero/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'end' >> /home/libero/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '' >> /home/libero/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'if status is-interactive; and not set -q TMUX' >> /home/libero/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '                exec tmux' >> /home/libero/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'end' >> /home/libero/.config/fish/config.fish"
+
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "chown -R libero:libero /home/libero/.config"
+	
+	@echo "Configure tmux for better terminal experience..."
+
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'set -g status-interval 1' > /root/.tmux.conf"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'set -g status-left \"#[fg=green,bg=black]#(tmux-mem-cpu-load --colors --interval 1)\"' >> /root/.tmux.conf"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'set -g status-left-length 60' >> /root/.tmux.conf"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'set -g status-right \"[#(date +'\''%d/%m/%Y %H:%M'\'')]\"' >> /root/.tmux.conf"
+
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'set -g status-interval 1' > /home/libero/.tmux.conf"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'set -g status-left \"#[fg=green,bg=black]#(tmux-mem-cpu-load --colors --interval 1)\"' >> /home/libero/.tmux.conf"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'set -g status-left-length 60' >> /home/libero/.tmux.conf"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'set -g status-right \"[#(date +'\''%d/%m/%Y %H:%M'\'')]\"' >> /home/libero/.tmux.conf"
+
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "chown libero:libero /home/libero/.tmux.conf"
+
+	@echo "Add user Libero to sudoers..."
+
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'libero ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers"
+
+	@echo "Setup Ultimate Vim  for Root and Libero user..."
+
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "git clone --depth=1 https://github.com/amix/vimrc.git /opt/vim_runtime"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "cd /opt/vim_runtime && python update_plugins.py"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "sh /opt/vim_runtime/install_awesome_parameterized.sh /opt/vim_runtime root libero"
+
+	@echo "Setting up Emacs configuration for root and libero users..."
+
+	# Setup Emacs for root user
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "git clone https://github.com/purcell/emacs.d.git /root/.emacs.d"
+
+	# Setup Emacs for libero user
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "git clone https://github.com/purcell/emacs.d.git /home/libero/.emacs.d"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "chown -R libero:libero /home/libero/.emacs.d"
+
+	# Pre-install packages for root (with better error handling)
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "timeout 300 emacs --batch --eval '(condition-case err (progn (package-initialize) (package-refresh-contents) (package-install-selected-packages t)) (error (message \"Package installation failed: %s\" err)))' 2>/dev/null || echo 'Root Emacs package installation skipped or failed'"
+
+	# Pre-install packages for libero user (run as correct user)
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "sudo -u libero timeout 300 emacs --batch --eval '(condition-case err (progn (package-initialize) (package-refresh-contents) (package-install-selected-packages t)) (error (message \"Package installation failed: %s\" err)))' 2>/dev/null || echo 'Libero Emacs package installation skipped or failed'"
 
 	@echo "Setting up installation launcher..."
 
@@ -241,13 +385,13 @@ setup-grub:
 	
 	sudo sh -c 'echo "menuentry \"$(DISTRO_NAME) GNU/Linux $(VERSION) - Admin CD\" {" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "    set root=(cd)" >> $(ISO_DIR)/boot/grub/grub.cfg'
-	sudo sh -c 'echo "    linux /boot/vmlinuz root=live:CDLABEL=LIBERO_11 rd.live.image rd.live.dir=/ rd.live.squashimg=image.squashfs libero.mode=admin quiet loglevel=0" >> $(ISO_DIR)/boot/grub/grub.cfg'
+	sudo sh -c 'echo "    linux /boot/vmlinuz root=live:CDLABEL=LIBERO_12 rd.live.image rd.live.dir=/ rd.live.squashimg=image.squashfs libero.mode=admin quiet loglevel=0" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "    initrd /boot/initrd" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "}" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "menuentry \"$(DISTRO_NAME) GNU/Linux $(VERSION) - Installer\" {" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "    set root=(cd)" >> $(ISO_DIR)/boot/grub/grub.cfg'
-	sudo sh -c 'echo "    linux /boot/vmlinuz root=live:CDLABEL=LIBERO_11 rd.live.image rd.live.dir=/ rd.live.squashimg=image.squashfs libero.mode=installer quiet loglevel=0" >> $(ISO_DIR)/boot/grub/grub.cfg'
+	sudo sh -c 'echo "    linux /boot/vmlinuz root=live:CDLABEL=LIBERO_12 rd.live.image rd.live.dir=/ rd.live.squashimg=image.squashfs libero.mode=installer quiet loglevel=0" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "    initrd /boot/initrd" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "}" >> $(ISO_DIR)/boot/grub/grub.cfg'
 
@@ -273,7 +417,7 @@ build-iso:
 	@echo "Creating GRUB boot image..."
 
 	if sudo grub-mkrescue --output=$(ISO_NAME) $(ISO_DIR) \
-		--volid="LIBERO_11" \
+		--volid="LIBERO_12" \
 		--product-name="$(DISTRO_NAME)" \
 		--product-version="$(VERSION)"; then \
 		echo "ISO created successfully with grub-mkrescue"; \
@@ -294,12 +438,12 @@ build-iso:
 			echo "GRUB files not found, using xorriso without GRUB boot..."; \
 		fi; \
 		if [ -f $(ISO_DIR)/boot/grub/eltorito.img ]; then \
-			sudo xorriso -as mkisofs -r -J -V "LIBERO_11" \
+			sudo xorriso -as mkisofs -r -J -V "LIBERO_12" \
 				-b boot/grub/eltorito.img -c boot/grub/boot.cat \
 				-no-emul-boot -boot-load-size 4 -boot-info-table \
 				-o $(ISO_NAME) $(ISO_DIR); \
 		else \
-			sudo xorriso -as mkisofs -r -J -V "LIBERO_11" \
+			sudo xorriso -as mkisofs -r -J -V "LIBERO_12" \
 				-o $(ISO_NAME) $(ISO_DIR); \
 		fi; \
 	fi
