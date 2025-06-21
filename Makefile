@@ -310,11 +310,11 @@ install-libero:
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "git clone https://github.com/purcell/emacs.d.git /home/libero/.emacs.d"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "chown -R libero:libero /home/libero/.emacs.d"
 
-	# Pre-install packages for root (with better error handling)
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "timeout 300 emacs --batch --eval '(condition-case err (progn (package-initialize) (package-refresh-contents) (package-install-selected-packages t)) (error (message \"Package installation failed: %s\" err)))' 2>/dev/null || echo 'Root Emacs package installation skipped or failed'"
+	# Initialize Emacs package system and pre-install packages for root
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "timeout 300 emacs --batch --load '/root/.emacs.d/init.el' --eval '(condition-case err (progn (package-initialize) (package-refresh-contents) (dolist (pkg package-selected-packages) (unless (package-installed-p pkg) (package-install pkg)))) (error (message \"Root package installation failed: %s\" err)))' 2>/dev/null || echo 'Root Emacs package installation completed with warnings'"
 
-	# Pre-install packages for libero user (run as correct user)
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "sudo -u libero timeout 300 emacs --batch --eval '(condition-case err (progn (package-initialize) (package-refresh-contents) (package-install-selected-packages t)) (error (message \"Package installation failed: %s\" err)))' 2>/dev/null || echo 'Libero Emacs package installation skipped or failed'"
+	# Initialize Emacs package system and pre-install packages for libero user
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "sudo -u libero timeout 300 emacs --batch --load '/home/libero/.emacs.d/init.el' --eval '(condition-case err (progn (package-initialize) (package-refresh-contents) (dolist (pkg package-selected-packages) (unless (package-installed-p pkg) (package-install pkg)))) (error (message \"Libero package installation failed: %s\" err)))' 2>/dev/null || echo 'Libero Emacs package installation completed with warnings'"
 
 	@echo "Setting up installation launcher..."
 
