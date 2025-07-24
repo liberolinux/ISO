@@ -1,0 +1,49 @@
+# Build directories
+work/
+*.iso
+
+# Temporary files
+*.tmp
+*.temp
+*~
+
+# Log files
+*.log
+
+# Compressed archives
+*.tar.xz
+*.tar.gz
+*.zip
+
+# QEMU disk images
+*.qcow2
+*.img
+
+# Editor backup files
+*.bak
+*.swp
+*.swo
+.*.swp
+.*.swo
+
+# IDE files
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Package manager files
+*.deb
+*.rpm
+*.pkg.tar.xz
+
+# Mount points (if any)
+mnt/
+mount/

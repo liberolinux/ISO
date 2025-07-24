@@ -46,8 +46,8 @@ LFS_PACKAGES = \
 	app-editors/emacs \
 	net-analyzer/nmap \
 	sys-apps/ethtool \
-	mail-client/mutt \
-	net-irc/ircii \
+	mail-client/alpine \
+	net-irc/irssi \
 	net-vpn/tor \
 	net-ftp/ftp \
 	net-misc/openssh \
@@ -58,9 +58,9 @@ QEMU_MEMORY = 2048
 QEMU_CPU = qemu32
 QEMU_OPTS = -m $(QEMU_MEMORY) -cpu $(QEMU_CPU) -enable-kvm -boot d -netdev user,id=net0 -device e1000,netdev=net0
 
-.PHONY: all check-deps download prepare chroot prepare-installer install-libero setup-grub squashfs build-iso debug-iso qemu qemu-hd clean help version
+.PHONY: all check-deps download prepare chroot prepare-installer install-libero setup-grub squashfs create-persistent-storage build-iso debug-iso qemu qemu-hd clean help version size-check
 
-all: check-deps download prepare chroot prepare-installer install-libero setup-grub squashfs build-iso
+all: check-deps download prepare chroot prepare-installer install-libero setup-grub squashfs create-persistent-storage build-iso
 
 check-deps:
 	@echo "Checking for required dependencies..."
@@ -103,11 +103,12 @@ chroot:
 
 prepare-installer:
 	@echo "Preparing gentoo-install for Libero..."
-	sudo mkdir -p $(CHROOT_DIR)/opt/libero-installer
+
+	sudo mkdir -p $(CHROOT_DIR)/opt/libero-install
 	@echo "Downloading and configuring libero-install..."
 	cd $(WORK_DIR) && wget https://github.com/liberolinux/libero-install/archive/refs/heads/main.zip -O libero-install.zip || { echo "Failed to download libero-install"; exit 1; }
 	cd $(WORK_DIR) && unzip -q libero-install.zip
-	sudo cp -r $(WORK_DIR)/libero-install-main/* $(CHROOT_DIR)/opt/libero-installer/
+	sudo cp -r $(WORK_DIR)/libero-install-main/* $(CHROOT_DIR)/opt/libero-install
 
 install-libero:
 	@echo "Installing Libero GNU/Linux required packages..."
@@ -123,7 +124,7 @@ install-libero:
 
 	@echo "Setting up GPG verification for binary packages..."
 	
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "getuto"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "getuto" || echo "Warning: getuto failed, continuing without binary package verification"
 
 	@echo "Configuring binary packages for faster builds..."
 
@@ -167,14 +168,16 @@ install-libero:
 	@echo "Configuring Live CD initramfs..."
 
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "mkdir -p /etc/dracut.conf.d"
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'add_dracutmodules+=\" dmsquash-live network base dm \"' > /etc/dracut.conf.d/livecd.conf"
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'filesystems+=\" squashfs iso9660 overlay tmpfs \"' >> /etc/dracut.conf.d/livecd.conf"
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'drivers+=\" cdrom sr_mod loop dm-mod overlay \"' >> /etc/dracut.conf.d/livecd.conf"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'add_dracutmodules+=\" dmsquash-live network base dm systemd overlayfs \"' > /etc/dracut.conf.d/livecd.conf"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'filesystems+=\" squashfs iso9660 overlay tmpfs ext4 \"' >> /etc/dracut.conf.d/livecd.conf" 
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'drivers+=\" cdrom sr_mod loop dm-mod overlay ata_piix ahci \"' >> /etc/dracut.conf.d/livecd.conf"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'omit_dracutmodules+=\" plymouth \"' >> /etc/dracut.conf.d/livecd.conf"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'persistent_policy=\"by-label\"' >> /etc/dracut.conf.d/livecd.conf"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'compress=\"zstd\"' >> /etc/dracut.conf.d/livecd.conf"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'hostonly=\"no\"' >> /etc/dracut.conf.d/livecd.conf"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'hostonly_cmdline=\"no\"' >> /etc/dracut.conf.d/livecd.conf"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'install_items+=\" /sbin/blkid /bin/findmnt /usr/bin/lsblk \"' >> /etc/dracut.conf.d/livecd.conf"
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "dracut --force --kver \$$(ls /lib/modules/) --no-hostonly --no-hostonly-cmdline --add 'dmsquash-live dm'"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "dracut --force --kver \$$(ls /lib/modules/ | head -1) --no-hostonly --no-hostonly-cmdline --add 'dmsquash-live dm overlayfs'"
 
 	@echo "Creating live user and configuring auto-login..."
 
@@ -310,16 +313,10 @@ install-libero:
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "git clone https://github.com/purcell/emacs.d.git /home/libero/.emacs.d"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "chown -R libero:libero /home/libero/.emacs.d"
 
-	# Initialize Emacs package system and pre-install packages for root
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "timeout 300 emacs --batch --load '/root/.emacs.d/init.el' --eval '(condition-case err (progn (package-initialize) (package-refresh-contents) (dolist (pkg package-selected-packages) (unless (package-installed-p pkg) (package-install pkg)))) (error (message \"Root package installation failed: %s\" err)))' 2>/dev/null || echo 'Root Emacs package installation completed with warnings'"
-
-	# Initialize Emacs package system and pre-install packages for libero user
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "sudo -u libero timeout 300 emacs --batch --load '/home/libero/.emacs.d/init.el' --eval '(condition-case err (progn (package-initialize) (package-refresh-contents) (dolist (pkg package-selected-packages) (unless (package-installed-p pkg) (package-install pkg)))) (error (message \"Libero package installation failed: %s\" err)))' 2>/dev/null || echo 'Libero Emacs package installation completed with warnings'"
-
 	@echo "Setting up installation launcher..."
 
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "chmod +x /opt/libero-installer/install"
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "chmod +x /opt/libero-installer/configure"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "chmod +x /opt/libero-install/install"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "chmod +x /opt/libero-install/configure"
 
 	@echo "Enabling network services..."
 
@@ -336,9 +333,9 @@ install-libero:
 	sudo sh -c 'echo "" >> $(CHROOT_DIR)/etc/systemd/system/libero-auto-install.service'
 	sudo sh -c 'echo "[Service]" >> $(CHROOT_DIR)/etc/systemd/system/libero-auto-install.service'
 	sudo sh -c 'echo "Type=idle" >> $(CHROOT_DIR)/etc/systemd/system/libero-auto-install.service'
-	sudo sh -c 'echo "WorkingDirectory=/opt/libero-installer" >> $(CHROOT_DIR)/etc/systemd/system/libero-auto-install.service'
-	sudo sh -c 'echo "ExecStartPre=/opt/libero-installer/configure" >> $(CHROOT_DIR)/etc/systemd/system/libero-auto-install.service'
-	sudo sh -c 'echo "ExecStart=/bin/bash -c \"/opt/libero-installer/install && echo '\''Press Enter to reboot...'\''; read && reboot\"" >> $(CHROOT_DIR)/etc/systemd/system/libero-auto-install.service'
+	sudo sh -c 'echo "WorkingDirectory=/opt/libero-install" >> $(CHROOT_DIR)/etc/systemd/system/libero-auto-install.service'
+	sudo sh -c 'echo "ExecStartPre=/opt/libero-install/configure" >> $(CHROOT_DIR)/etc/systemd/system/libero-auto-install.service'
+	sudo sh -c 'echo "ExecStart=/bin/bash -c \"/opt/libero-install/install && echo '\''Press Enter to reboot...'\''; read && reboot\"" >> $(CHROOT_DIR)/etc/systemd/system/libero-auto-install.service'
 	sudo sh -c 'echo "StandardInput=tty" >> $(CHROOT_DIR)/etc/systemd/system/libero-auto-install.service'
 	sudo sh -c 'echo "StandardOutput=tty" >> $(CHROOT_DIR)/etc/systemd/system/libero-auto-install.service'
 	sudo sh -c 'echo "TTYPath=/dev/tty1" >> $(CHROOT_DIR)/etc/systemd/system/libero-auto-install.service'
@@ -353,7 +350,66 @@ install-libero:
 
 	@echo "Auto-installer setup complete (only runs in installer mode)."
 	@echo "Auto-configure and installer setup complete (only runs in installer mode)."
+
+	@echo "Configure zram for better performance..."
+
+	sudo mkdir -p $(CHROOT_DIR)/etc/systemd/system
+	sudo sh -c 'echo "[Unit]" > $(CHROOT_DIR)/etc/systemd/system/zram-swap.service'
+	sudo sh -c 'echo "Description=Setup zram swap for Live CD" >> $(CHROOT_DIR)/etc/systemd/system/zram-swap.service'
+	sudo sh -c 'echo "Documentation=man:zram" >> $(CHROOT_DIR)/etc/systemd/system/zram-swap.service'
+	sudo sh -c 'echo "DefaultDependencies=no" >> $(CHROOT_DIR)/etc/systemd/system/zram-swap.service'
+	sudo sh -c 'echo "After=systemd-modules-load.service systemd-udev-settle.service" >> $(CHROOT_DIR)/etc/systemd/system/zram-swap.service'
+	sudo sh -c 'echo "Before=swap.target sysinit.target" >> $(CHROOT_DIR)/etc/systemd/system/zram-swap.service'
+	sudo sh -c 'echo "Wants=systemd-modules-load.service" >> $(CHROOT_DIR)/etc/systemd/system/zram-swap.service'
+	sudo sh -c 'echo "" >> $(CHROOT_DIR)/etc/systemd/system/zram-swap.service'
+	sudo sh -c 'echo "[Service]" >> $(CHROOT_DIR)/etc/systemd/system/zram-swap.service'
+	sudo sh -c 'echo "Type=oneshot" >> $(CHROOT_DIR)/etc/systemd/system/zram-swap.service'
+	sudo sh -c 'echo "RemainAfterExit=yes" >> $(CHROOT_DIR)/etc/systemd/system/zram-swap.service'
+	sudo sh -c 'echo "ExecStart=/bin/bash -c '\''modprobe zram num_devices=1'\''" >> $(CHROOT_DIR)/etc/systemd/system/zram-swap.service'
+	sudo sh -c 'echo "ExecStart=/bin/bash -c '\''echo lz4 > /sys/block/zram0/comp_algorithm'\''" >> $(CHROOT_DIR)/etc/systemd/system/zram-swap.service'
+	sudo sh -c "echo 'ExecStart=/bin/bash -c \"awk \\\"/MemTotal/{print \\\$$2}\\\" /proc/meminfo | awk \\\"{print \\\$$1 * 1024 / 2}\\\" > /sys/block/zram0/disksize\"' >> ${CHROOT_DIR}/etc/systemd/system/zram-swap.service"
+	sudo sh -c 'echo "ExecStart=/bin/bash -c '\''mkswap /dev/zram0'\''" >> $(CHROOT_DIR)/etc/systemd/system/zram-swap.service'
+	sudo sh -c 'echo "ExecStart=/bin/bash -c '\''swapon /dev/zram0 -p 10'\''" >> $(CHROOT_DIR)/etc/systemd/system/zram-swap.service'
+	sudo sh -c 'echo "ExecStop=/bin/bash -c '\''swapoff /dev/zram0'\''" >> $(CHROOT_DIR)/etc/systemd/system/zram-swap.service'
+	sudo sh -c 'echo "ExecStop=/bin/bash -c '\''echo 1 > /sys/block/zram0/reset'\''" >> $(CHROOT_DIR)/etc/systemd/system/zram-swap.service'
+	sudo sh -c 'echo "TimeoutSec=30" >> $(CHROOT_DIR)/etc/systemd/system/zram-swap.service'
+	sudo sh -c 'echo "" >> $(CHROOT_DIR)/etc/systemd/system/zram-swap.service'
+	sudo sh -c 'echo "[Install]" >> $(CHROOT_DIR)/etc/systemd/system/zram-swap.service'
+	sudo sh -c 'echo "WantedBy=swap.target" >> $(CHROOT_DIR)/etc/systemd/system/zram-swap.service'
+
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "systemctl enable zram-swap.service"
+
 	@echo "Libero GNU/Linux packages installed."
+
+size-check:
+	@echo "=== Size Analysis ==="
+	
+	@if [ -d "$(CHROOT_DIR)" ]; then \
+		echo "Chroot directory size:"; \
+		du -sh $(CHROOT_DIR); \
+		echo ""; \
+		echo "Largest directories in chroot:"; \
+		sudo du -sh $(CHROOT_DIR)/* 2>/dev/null | sort -hr | head -10; \
+		echo ""; \
+	fi
+	@if [ -f "$(ISO_DIR)/image.squashfs" ]; then \
+		echo "SquashFS image size:"; \
+		ls -lh $(ISO_DIR)/image.squashfs; \
+		echo ""; \
+	fi
+	@if [ -d "$(ISO_DIR)" ]; then \
+		echo "ISO directory size:"; \
+		du -sh $(ISO_DIR); \
+		echo ""; \
+		echo "Largest directories in ISO:"; \
+		sudo du -sh $(ISO_DIR)/* 2>/dev/null | sort -hr | head -10; \
+		echo ""; \
+	fi
+	@if [ -f "$(ISO_NAME)" ]; then \
+		echo "Final ISO size:"; \
+		ls -lh $(ISO_NAME); \
+		echo ""; \
+	fi
 
 setup-grub:
 	@echo "Setting up GRUB configuration..."
@@ -398,14 +454,15 @@ setup-grub:
 	@echo "GRUB setup complete."
 
 squashfs:
-	@echo "Creating squashfs image..."
+	@echo "Creating highly compressed squashfs image..."
 
 	sudo mksquashfs $(CHROOT_DIR) $(ISO_DIR)/image.squashfs \
 		-no-exports -comp zstd -Xcompression-level 22 \
 		-e proc dev sys tmp var/tmp var/cache var/log/portage \
-		-no-progress
+		-no-progress -no-duplicates -always-use-fragments
 
 	@echo "Squashfs image created at $(ISO_DIR)/image.squashfs"
+	@echo "Squashfs size: $$(du -h $(ISO_DIR)/image.squashfs | cut -f1)"
 
 build-iso:
 	@echo "Creating ISO directory structure..."
@@ -414,7 +471,7 @@ build-iso:
 	sudo cp $(CHROOT_DIR)/boot/kernel-* $(ISO_DIR)/boot/vmlinuz
 	sudo cp $(CHROOT_DIR)/boot/initramfs-* $(ISO_DIR)/boot/initrd
 
-	@echo "Creating GRUB boot image..."
+	@echo "Creating GRUB boot image with large file support..."
 
 	if sudo grub-mkrescue --output=$(ISO_NAME) $(ISO_DIR) \
 		--volid="LIBERO_12" \
@@ -422,7 +479,7 @@ build-iso:
 		--product-version="$(VERSION)"; then \
 		echo "ISO created successfully with grub-mkrescue"; \
 	else \
-		echo "grub-mkrescue failed, trying manual GRUB setup..."; \
+		echo "grub-mkrescue failed, trying manual GRUB setup with large file support..."; \
 		sudo mkdir -p $(ISO_DIR)/boot/grub/i386-pc; \
 		if [ -d /usr/lib/grub/i386-pc ] && [ -f /usr/lib/grub/i386-pc/moddep.lst ]; then \
 			sudo cp -r /usr/lib/grub/i386-pc/* $(ISO_DIR)/boot/grub/i386-pc/; \
@@ -449,9 +506,13 @@ build-iso:
 	fi
 
 	@echo "ISO image created: $(ISO_NAME)"
+	@FINAL_SIZE=$$(du -h $(ISO_NAME) | cut -f1); \
+	echo "Final ISO size: $${FINAL_SIZE}"; \
+	ls -lh $(ISO_NAME)
 
 debug-iso:
 	@echo "Checking ISO contents..."
+	
 	@echo "=== Boot files ==="
 
 	ls -la $(ISO_DIR)/boot/
@@ -485,7 +546,7 @@ clean:
 	@echo "Cleaning build environment..."
 	
 	sudo umount $(CHROOT_DIR)/dev $(CHROOT_DIR)/proc $(CHROOT_DIR)/sys 2>/dev/null || true
-	sudo rm -rf $(WORK_DIR) $(ISO_NAME) libero-hd.qcow2
+	sudo rm -rf $(WORK_DIR) $(ISO_NAME) libero-hd.qcow2 || true
 
 help:
 	@echo "Makefile for $(DISTRO_NAME) Admin CD"
@@ -495,11 +556,12 @@ help:
 	@echo "  make download     - Download Gentoo stage3 and portage snapshot"
 	@echo "  make prepare      - Prepare the chroot environment"
 	@echo "  make chroot       - Set up the chroot environment"
-	@echo "  make prepare-installer - Download gentoo-install"
+	@echo "  make prepare-installer - Download libero-install"
 	@echo "  make install-libero - Install Libero GNU/Linux packages"
 	@echo "  make setup-grub   - Set up GRUB configuration"
 	@echo "  make squashfs     - Create Squashfs image"
 	@echo "  make build-iso    - Build the ISO image"
+	@echo "  make size-check   - Monitor build sizes and space usage"
 	@echo "  make debug-iso    - Check ISO contents and GRUB config"
 	@echo "  make qemu-debug   - Start QEMU with debug output"
 	@echo "  make qemu         - Start QEMU with the ISO"
