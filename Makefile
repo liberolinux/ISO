@@ -30,6 +30,14 @@ LFS_PACKAGES = \
 	sys-fs/squashfs-tools \
 	sys-fs/lvm2 \
 	sys-fs/xfsprogs \
+	sys-fs/btrfs-progs \
+	sys-fs/fuse-overlayfs \
+	sys-fs/fuse \
+	sys-fs/exfatprogs \
+	sys-fs/exfat-utils \
+	sys-fs/fuse-exfat \
+	sys-fs/ntfs3 \
+	sys-fs/ntfs3progs \
 	sys-fs/ntfs3g \
     sys-block/parted \
 	dev-util/dialog \
@@ -199,13 +207,18 @@ install-libero:
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "chsh -s /usr/bin/fish root"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "chsh -s /usr/bin/fish libero"
 
-	@echo "Configuring fish shell for root and libero user..."
+	@echo "Terminal Console Background to White"
 
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "mkdir -p /root/.config/fish"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "mkdir -p /home/libero/.config/fish"
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'set -g fish_greeting \"Welcome to Libero GNU/Linux $(VERSION)!\"' > /root/.config/fish/config.fish"
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'set -g fish_greeting \"Welcome to Libero GNU/Linux $(VERSION)!\"' > /home/libero/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'set -g background white' > /root/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'set -g background white' > /home/libero/.config/fish/config.fish"
 
+	@echo "Configuring fish shell for root and libero user..."
+
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'set -g fish_greeting \"Welcome to Libero GNU/Linux $(VERSION)!\"' >> /root/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'set -g fish_greeting \"Welcome to Libero GNU/Linux $(VERSION)!\"' >> /home/libero/.config/fish/config.fish"
+	
 	@echo "Make tmux load after Root Login..."
 
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'if status is-login' >> /root/.config/fish/config.fish"
