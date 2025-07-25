@@ -31,13 +31,10 @@ LFS_PACKAGES = \
 	sys-fs/lvm2 \
 	sys-fs/xfsprogs \
 	sys-fs/btrfs-progs \
-	sys-fs/fuse-overlayfs \
 	sys-fs/fuse \
 	sys-fs/exfatprogs \
 	sys-fs/exfat-utils \
 	sys-fs/fuse-exfat \
-	sys-fs/ntfs3 \
-	sys-fs/ntfs3progs \
 	sys-fs/ntfs3g \
     sys-block/parted \
 	dev-util/dialog \
