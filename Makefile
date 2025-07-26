@@ -201,12 +201,16 @@ install-libero:
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "chsh -s /usr/bin/fish root"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "chsh -s /usr/bin/fish libero"
 
-	@echo "Terminal Console Background to White"
+	@echo "Terminal Console Background to White and Text to Black..."
 
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "mkdir -p /root/.config/fish"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "mkdir -p /home/libero/.config/fish"
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'set -g background white' > /root/.config/fish/config.fish"
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'set -g background white' > /home/libero/.config/fish/config.fish"
+
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    printf \"\\033]10;#000000\\007\"     # foreground (black text)' > /root/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    printf \"\\033]11;#ffffff\\007\"     # background (white)' >> /root/.config/fish/config.fish"
+
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    printf \"\\033]10;#000000\\007\"     # foreground (black text)' > /home/libero/.config/fish/config.fish"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    printf \"\\033]11;#ffffff\\007\"     # background (white)' >> /home/libero/.config/fish/config.fish"
 
 	@echo "Configuring fish shell for root and libero user..."
 
