@@ -275,7 +275,7 @@ install-libero:
 
 	@ echo "Cloning Libero GNU/Linux scripts repository..."
 
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "git clone https://github.com/liberolinux/X86.git /home/libero"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "git clone https://github.com/liberolinux/X86.git /opt/X86"
 
 	@echo "Enabling network services..."
 
