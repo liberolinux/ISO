@@ -175,10 +175,9 @@ install-libero:
 	@echo "Creating live user and configuring auto-login..."
 
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "groupadd libero || true"
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "useradd -m -G libero,audio,video,wheel -s /bin/bash libero || true"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "useradd -m -g libero -G audio,video,wheel -s /bin/bash libero || true"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'libero:libero' | chpasswd"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'root:libero' | chpasswd"
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '%wheel ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers"
 
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "mkdir -p /etc/systemd/system/getty@tty1.service.d"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '[Unit]' > /etc/systemd/system/getty@tty1.service.d/autologin.conf"
@@ -247,6 +246,7 @@ install-libero:
 
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'libero ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'root ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '%wheel ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers"
 
 	@echo "Creating bash configuration file for Libero user in order to use the Build Scripts..."
 	
