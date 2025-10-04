@@ -60,9 +60,9 @@ QEMU_MEMORY = 2048
 QEMU_CPU = qemu32
 QEMU_OPTS = -m $(QEMU_MEMORY) -cpu $(QEMU_CPU) -enable-kvm -boot d -netdev user,id=net0 -device e1000,netdev=net0
 
-.PHONY: all check-deps download prepare chroot prepare-installer install-libero setup-grub squashfs create-persistent-storage build-iso debug-iso qemu qemu-hd clean help version size-check
+.PHONY: all check-deps download prepare chroot install-libero setup-grub squashfs build-iso debug-iso qemu qemu-hd clean help version size-check
 
-all: check-deps download prepare chroot prepare-installer install-libero setup-grub squashfs create-persistent-storage build-iso
+all: check-deps download prepare chroot install-libero setup-grub squashfs build-iso
 
 check-deps:
 	@echo "Checking for required dependencies..."
@@ -102,15 +102,6 @@ chroot:
 	sudo mount --bind /dev $(CHROOT_DIR)/dev
 	sudo mount --bind /proc $(CHROOT_DIR)/proc
 	sudo mount --bind /sys $(CHROOT_DIR)/sys
-
-prepare-installer:
-	@echo "Preparing gentoo-install for Libero..."
-
-	sudo mkdir -p $(CHROOT_DIR)/opt/libero-install
-	@echo "Downloading and configuring libero-install..."
-	cd $(WORK_DIR) && wget https://github.com/liberolinux/libero-install/archive/refs/heads/main.zip -O libero-install.zip || { echo "Failed to download libero-install"; exit 1; }
-	cd $(WORK_DIR) && unzip -q libero-install.zip
-	sudo cp -r $(WORK_DIR)/libero-install-main/* $(CHROOT_DIR)/opt/libero-install
 
 install-libero:
 	@echo "Installing Libero GNU/Linux required packages..."
@@ -183,7 +174,8 @@ install-libero:
 
 	@echo "Creating live user and configuring auto-login..."
 
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "useradd -m -G audio,video,wheel -s /bin/bash libero || true"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "groupadd libero || true"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "useradd -m -G libero,audio,video,wheel -s /bin/bash libero || true"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'libero:libero' | chpasswd"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'root:libero' | chpasswd"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '%wheel ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers"
@@ -251,9 +243,29 @@ install-libero:
 
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "chown libero:libero /home/libero/.tmux.conf"
 
-	@echo "Add user Libero to sudoers..."
+	@echo "Add user Libero and root to sudoers..."
 
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'libero ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'root ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers"
+
+	@echo "Creating bash configuration file for Libero user in order to use the Build Scripts..."
+	
+	# Create .bash_profile for Libero user
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'if [ -f ~/.bashrc ]; then' > /home/libero/.bash_profile"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    . ~/.bashrc' >> /home/libero/.bash_profile"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'fi' >> /home/libero/.bash_profile"
+	chroot $(CHROOT_DIR) /bin/bash -c "echo 'exec env -i HOME=\$$HOME TERM=\$$TERM PS1='\''\u:\w\$ '\'' /bin/bash' >> /home/libero/.bash_profile"
+
+	# Create .bashrc for Libero user
+	chroot $(CHROOT_DIR) /bin/bash -c "echo 'set +h' > /home/libero/.bashrc"
+	chroot $(CHROOT_DIR) /bin/bash -c "echo 'umask 022' >> /home/libero/.bashrc"
+	chroot $(CHROOT_DIR) /bin/bash -c "echo 'export LIBERO=/mnt/libero' >> /home/libero/.bashrc"
+	chroot $(CHROOT_DIR) /bin/bash -c "echo 'export LC_ALL=POSIX' >> /home/libero/.bashrc"
+	chroot $(CHROOT_DIR) /bin/bash -c "echo 'export LIBERO_TGT=\$(uname -m)-libero-linux-gnu' >> /home/libero/.bashrc"
+	chroot $(CHROOT_DIR) /bin/bash -c "echo 'if [ ! -L /bin ]; then PATH=/bin:\$PATH; fi' >> /home/libero/.bashrc"
+	chroot $(CHROOT_DIR) /bin/bash -c "echo 'PATH=\$LIBERO/tools/bin:\$PATH' >> /home/libero/.bashrc"
+	chroot $(CHROOT_DIR) /bin/bash -c "echo 'CONFIG_SITE=\$LIBERO/usr/share/config.site' >> /home/libero/.bashrc"
+	chroot $(CHROOT_DIR) /bin/bash -c "echo 'export LFS LC_ALL LFS_TGT PATH CONFIG_SITE' >> /home/libero/.bashrc"
 
 	@echo "Setup Ultimate Vim  for Root and Libero user..."
 
@@ -261,52 +273,13 @@ install-libero:
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "cd /opt/vim_runtime && python update_plugins.py"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "sh /opt/vim_runtime/install_awesome_parameterized.sh /opt/vim_runtime root libero"
 
-	@echo "Setting up Emacs configuration for root and libero users..."
+	@ echo "Cloning Libero GNU/Linux scripts repository..."
 
-	# Setup Emacs for root user
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "git clone https://github.com/purcell/emacs.d.git /root/.emacs.d"
-
-	# Setup Emacs for libero user
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "git clone https://github.com/purcell/emacs.d.git /home/libero/.emacs.d"
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "chown -R libero:libero /home/libero/.emacs.d"
-
-	@echo "Setting up installation launcher..."
-
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "chmod +x /opt/libero-install/install"
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "chmod +x /opt/libero-install/configure"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "git clone https://github.com/liberolinux/X86.git /home/libero"
 
 	@echo "Enabling network services..."
 
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "systemctl enable dhcpcd.service"
-
-	@echo "Creating systemd service for auto-installation..."
-
-	sudo mkdir -p $(CHROOT_DIR)/etc/systemd/system
-	sudo sh -c 'echo "[Unit]" > $(CHROOT_DIR)/etc/systemd/system/libero-auto-install.service'
-	sudo sh -c 'echo "Description=Libero Auto Installer" >> $(CHROOT_DIR)/etc/systemd/system/libero-auto-install.service'
-	sudo sh -c 'echo "After=getty@tty1.service multi-user.target" >> $(CHROOT_DIR)/etc/systemd/system/libero-auto-install.service'
-	sudo sh -c 'echo "Wants=getty@tty1.service" >> $(CHROOT_DIR)/etc/systemd/system/libero-auto-install.service'
-	sudo sh -c 'echo "ConditionKernelCommandLine=libero.mode=installer" >> $(CHROOT_DIR)/etc/systemd/system/libero-auto-install.service'
-	sudo sh -c 'echo "" >> $(CHROOT_DIR)/etc/systemd/system/libero-auto-install.service'
-	sudo sh -c 'echo "[Service]" >> $(CHROOT_DIR)/etc/systemd/system/libero-auto-install.service'
-	sudo sh -c 'echo "Type=idle" >> $(CHROOT_DIR)/etc/systemd/system/libero-auto-install.service'
-	sudo sh -c 'echo "WorkingDirectory=/opt/libero-install" >> $(CHROOT_DIR)/etc/systemd/system/libero-auto-install.service'
-	sudo sh -c 'echo "ExecStartPre=/opt/libero-install/configure" >> $(CHROOT_DIR)/etc/systemd/system/libero-auto-install.service'
-	sudo sh -c 'echo "ExecStart=/bin/bash -c \"/opt/libero-install/install && echo '\''Press Enter to reboot...'\''; read && reboot\"" >> $(CHROOT_DIR)/etc/systemd/system/libero-auto-install.service'
-	sudo sh -c 'echo "StandardInput=tty" >> $(CHROOT_DIR)/etc/systemd/system/libero-auto-install.service'
-	sudo sh -c 'echo "StandardOutput=tty" >> $(CHROOT_DIR)/etc/systemd/system/libero-auto-install.service'
-	sudo sh -c 'echo "TTYPath=/dev/tty1" >> $(CHROOT_DIR)/etc/systemd/system/libero-auto-install.service'
-	sudo sh -c 'echo "Restart=no" >> $(CHROOT_DIR)/etc/systemd/system/libero-auto-install.service'
-	sudo sh -c 'echo "" >> $(CHROOT_DIR)/etc/systemd/system/libero-auto-install.service'
-	sudo sh -c 'echo "[Install]" >> $(CHROOT_DIR)/etc/systemd/system/libero-auto-install.service'
-	sudo sh -c 'echo "WantedBy=multi-user.target" >> $(CHROOT_DIR)/etc/systemd/system/libero-auto-install.service'
-
-	@echo "Enabling libero installer service..."
-
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "systemctl enable libero-auto-install.service"
-
-	@echo "Auto-installer setup complete (only runs in installer mode)."
-	@echo "Auto-configure and installer setup complete (only runs in installer mode)."
 
 	@echo "Configure zram for better performance..."
 
@@ -396,17 +369,12 @@ setup-grub:
 	sudo sh -c 'echo "# =================================" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	
-	sudo sh -c 'echo "menuentry \"$(DISTRO_NAME) GNU/Linux $(VERSION) - Admin CD\" {" >> $(ISO_DIR)/boot/grub/grub.cfg'
+	sudo sh -c 'echo "menuentry \"$(DISTRO_NAME) GNU/Linux - Admin CD\" {" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "    set root=(cd)" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "    linux /boot/vmlinuz root=live:CDLABEL=LIBERO_12 rd.live.image rd.live.dir=/ rd.live.squashimg=image.squashfs libero.mode=admin quiet loglevel=0" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "    initrd /boot/initrd" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "}" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "" >> $(ISO_DIR)/boot/grub/grub.cfg'
-	sudo sh -c 'echo "menuentry \"$(DISTRO_NAME) GNU/Linux $(VERSION) - Installer\" {" >> $(ISO_DIR)/boot/grub/grub.cfg'
-	sudo sh -c 'echo "    set root=(cd)" >> $(ISO_DIR)/boot/grub/grub.cfg'
-	sudo sh -c 'echo "    linux /boot/vmlinuz root=live:CDLABEL=LIBERO_12 rd.live.image rd.live.dir=/ rd.live.squashimg=image.squashfs libero.mode=installer quiet loglevel=0" >> $(ISO_DIR)/boot/grub/grub.cfg'
-	sudo sh -c 'echo "    initrd /boot/initrd" >> $(ISO_DIR)/boot/grub/grub.cfg'
-	sudo sh -c 'echo "}" >> $(ISO_DIR)/boot/grub/grub.cfg'
 
 	@echo "GRUB setup complete."
 
@@ -513,7 +481,6 @@ help:
 	@echo "  make download     - Download Gentoo stage3 and portage snapshot"
 	@echo "  make prepare      - Prepare the chroot environment"
 	@echo "  make chroot       - Set up the chroot environment"
-	@echo "  make prepare-installer - Download libero-install"
 	@echo "  make install-libero - Install Libero GNU/Linux packages"
 	@echo "  make setup-grub   - Set up GRUB configuration"
 	@echo "  make squashfs     - Create Squashfs image"
