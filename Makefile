@@ -185,7 +185,7 @@ install-libero:
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '' >> /etc/systemd/system/getty@tty1.service.d/autologin.conf"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '[Service]' >> /etc/systemd/system/getty@tty1.service.d/autologin.conf"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'ExecStart=' >> /etc/systemd/system/getty@tty1.service.d/autologin.conf"
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'ExecStart=-/sbin/agetty --autologin root --noclear %I \$$TERM' >> /etc/systemd/system/getty@tty1.service.d/autologin.conf"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'ExecStart=-/sbin/agetty --autologin libero --noclear %I \$$TERM' >> /etc/systemd/system/getty@tty1.service.d/autologin.conf"
 
 	@echo "Change Shell for root and libero user to fish..."
 
@@ -246,26 +246,7 @@ install-libero:
 
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'libero ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'root ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers"
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '%wheel ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers"
-
-	@echo "Creating bash configuration file for Libero user in order to use the Build Scripts..."
-	
-	# Create .bash_profile for Libero user
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'if [ -f ~/.bashrc ]; then' > /home/libero/.bash_profile"
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '    . ~/.bashrc' >> /home/libero/.bash_profile"
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'fi' >> /home/libero/.bash_profile"
-	chroot $(CHROOT_DIR) /bin/bash -c "echo 'exec env -i HOME=\$$HOME TERM=\$$TERM PS1='\''\u:\w\$ '\'' /bin/bash' >> /home/libero/.bash_profile"
-
-	# Create .bashrc for Libero user
-	chroot $(CHROOT_DIR) /bin/bash -c "echo 'set +h' > /home/libero/.bashrc"
-	chroot $(CHROOT_DIR) /bin/bash -c "echo 'umask 022' >> /home/libero/.bashrc"
-	chroot $(CHROOT_DIR) /bin/bash -c "echo 'export LIBERO=/mnt/libero' >> /home/libero/.bashrc"
-	chroot $(CHROOT_DIR) /bin/bash -c "echo 'export LC_ALL=POSIX' >> /home/libero/.bashrc"
-	chroot $(CHROOT_DIR) /bin/bash -c "echo 'export LIBERO_TGT=\$(uname -m)-libero-linux-gnu' >> /home/libero/.bashrc"
-	chroot $(CHROOT_DIR) /bin/bash -c "echo 'if [ ! -L /bin ]; then PATH=/bin:\$PATH; fi' >> /home/libero/.bashrc"
-	chroot $(CHROOT_DIR) /bin/bash -c "echo 'PATH=\$LIBERO/tools/bin:\$PATH' >> /home/libero/.bashrc"
-	chroot $(CHROOT_DIR) /bin/bash -c "echo 'CONFIG_SITE=\$LIBERO/usr/share/config.site' >> /home/libero/.bashrc"
-	chroot $(CHROOT_DIR) /bin/bash -c "echo 'export LFS LC_ALL LFS_TGT PATH CONFIG_SITE' >> /home/libero/.bashrc"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '%wheel ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers"	
 
 	@echo "Setup Ultimate Vim  for Root and Libero user..."
 
