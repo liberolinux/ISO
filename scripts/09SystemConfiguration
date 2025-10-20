@@ -1,0 +1,134 @@
+#!/bin/bash
+
+# Copyright © 1999-2025 Gerard Beekmans
+# Linux® is a registered trademark of Linus Torvalds.
+#
+# This file contains the MIT License for the software developed by Gerard Beekmans.
+# The MIT License grants permission to any person obtaining a copy of this software
+# and associated documentation files to use, copy, modify, merge, publish, distribute,
+# sublicense, and/or sell copies of the Software, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included
+# in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+# PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+# FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+# OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+
+# Start Counting Time of Script
+start_time=$(date +%s)
+
+# Chapter 9 - System Configuration
+echo "" 
+echo "Welcome to Chapter 9 - System Configuration"
+
+echo ""
+read -t 10 -p "Press Enter to continue..." || true
+
+# Configuring the system hostname
+echo "Configuring the system hostname"
+echo "libero" > /etc/hostname
+echo ""
+echo "[Done]"
+
+# Configuring the Linux Console
+echo "Configuring the Linux Console"
+cat > /etc/vconsole.conf << "EOF"
+KEYMAP=us
+# FONT=
+EOF
+echo ""
+echo "[Done]"
+
+# Configuring the System Locale
+echo "Configuring the System Locale"
+cat > /etc/locale.conf << "EOF"
+LANG=en_US.UTF-8
+EOF
+echo ""
+echo "[Done]"
+
+# Creating the /etc/shells File
+echo "Creating the /etc/shells File"
+cat > /etc/shells << "EOF"
+# Begin /etc/shells
+
+/bin/sh
+/bin/bash
+
+# End /etc/shells
+EOF
+echo ""
+echo "[Done]"
+
+echo ""
+echo "Create a Global bashrc Configuration"
+cat > /etc/bashrc << "EOF"
+#
+# /etc/bashrc
+#
+
+# If not running interactively, don't do anything
+[[ $- != *i* ]] && return
+
+alias ls='ls --color=auto'
+alias grep='grep --color=auto'
+PS1='[\u@\h \W]\$ '
+
+# End /etc/bashrc
+EOF
+echo ""
+echo "[Done]"
+
+echo ""
+echo "Create a Global Bash Profile Configuration"
+cat > /etc/profile << "EOF"
+#
+# /etc/profile
+#
+
+# Get the aliases and functions
+if [ -f /etc/bashrc ]; then
+	source /etc/bashrc
+fi
+
+# User specific environment and startup programs
+PATH=/opt/bin:/opt/sbin:/usr/bin:/usr/sbin
+
+export PATH
+
+# End /etc/profile
+EOF
+echo ""
+echo "[Done]"
+
+echo ""
+echo "Install pkgsrc"
+
+mkdir /usr/ports
+tar -xvf pkgsrc-2025Q3.tar.gz -C /usr/ports
+mv /usr/ports/pkgsrc/* /usr/ports
+rm -rf /usr/ports/pkgsrc
+
+echo ""
+echo "[Done]"
+
+echo ""
+echo "Bootstrap pkgsrc"
+
+cd /usr/ports/bootstrap
+./bootstrap --prefix /usr/pkg --prefer-pkgsrc yes --make-jobs $(nproc)
+
+echo ""
+echo "[Done]"
+
+# End Counnting Time of Script
+end_time=$(date +%s)
+time_elapsed=$((end_time - start_time))
+hours=$((time_elapsed / 3600))
+minutes=$((time_elapsed % 3600 / 60))
+seconds=$((time_elapsed % 60))
+echo "Time: $hours hour(s), $minutes minute(s), and $seconds second(s)"

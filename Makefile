@@ -254,9 +254,10 @@ install-libero:
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "cd /opt/vim_runtime && python update_plugins.py"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "sh /opt/vim_runtime/install_awesome_parameterized.sh /opt/vim_runtime root libero"
 
-	@ echo "Cloning Libero GNU/Linux scripts repository..."
+	@ echo "Put scripts folder in Libero GNU/Linux scripts repository..."
 
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "git clone https://github.com/liberolinux/X86.git /opt/X86"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "mkdir -p /opt/X86"
+	sudo cp -r scripts/* $(CHROOT_DIR)/opt/X86/
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "chmod 775 /opt/X86/*"
 
 	@echo "Enabling network services..."
