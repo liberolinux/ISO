@@ -115,6 +115,12 @@ install-libero:
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "eselect locale set en_US.utf8"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "env-update && source /etc/profile"
 
+	@echo "Configuring CMAKE version..."
+
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "mkdir -p /etc/portage/package.accept_keywords"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '=dev-build/cmake-3.31.9-r1 **' >> /etc/portage/package.accept_keywords/cmake"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "emerge --ask =dev-build/cmake-3.31.9-r1"
+
 	@echo "Setting up GPG verification for binary packages..."
 	
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "getuto" || echo "Warning: getuto failed, continuing without binary package verification"
@@ -125,7 +131,7 @@ install-libero:
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'PORTAGE_BINHOST=\"https://distfiles.gentoo.org/releases/x86/binpackages/23.0/i486/\"' >> /etc/portage/make.conf"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'EMERGE_DEFAULT_OPTS=\"--getbinpkg --usepkg\"' >> /etc/portage/make.conf"
 
-	@echo "Installing documentation tools first..."
+	@echo "Installing documentation tools..."
 
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "emerge --ask dev-python/docutils"
 
