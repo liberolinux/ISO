@@ -31,6 +31,10 @@ LFS_PACKAGES = \
 	sys-fs/lvm2 \
 	sys-fs/xfsprogs \
 	sys-fs/btrfs-progs \
+	sys-fs/e2fsprogs \
+	sys-fs/reiserfsprogs \
+	sys-fs/jfsutils \
+	sys-fs/xfsdump \
 	sys-fs/fuse \
 	sys-fs/ntfs3g \
     sys-block/parted \
@@ -52,8 +56,64 @@ LFS_PACKAGES = \
 	net-irc/irssi \
 	net-vpn/tor \
 	net-ftp/ftp \
+	dev-python/docutils \
 	net-misc/openssh \
-	app-misc/neofetch
+	app-misc/neofetch \
+	net-misc/networkmanager \
+	sys-apps/pciutils \
+	sys-apps/usbutils \
+	sys-apps/pv \
+	sys-apps/lshw \
+	sys-power/acpi \
+	app-arch/unzip \
+	app-arch/p7zip \
+	app-arch/zstd \
+	app-arch/lz4 \
+	app-arch/xz-utils \
+	app-arch/bzip2 \
+	app-arch/gzip \
+	net-misc/iputils \
+	net-analyzer/netcat \
+	net-analyzer/tcpdump \
+	media-sound/alsa-utils \
+	net-analyzer/iftop \
+	net-analyzer/mtr \
+	net-wireless/iw \
+	net-wireless/wireless-tools \
+	app-crypt/gnupg \
+	net-misc/rsync \
+	dev-libs/openssl \
+	dev-debug/gdb \
+	dev-debug/strace \
+	dev-debug/valgrind \
+	sys-apps/lm-sensors \
+	app-misc/mc \
+	sys-apps/dmidecode \
+	media-libs/libsndfile \
+	sys-process/iotop \
+	app-text/tree \
+	app-misc/jq \
+	sys-fs/inotify-tools \
+	app-portage/gentoolkit \
+	app-portage/eix \
+	app-portage/portage-utils \
+	sys-apps/mlocate \
+	app-admin/testdisk \
+	app-admin/sysstat \
+	media-sound/moc \
+	net-misc/whois \
+	net-misc/iperf \
+	net-misc/bridge-utils \
+	net-firewall/iptables \
+	sys-apps/smartmontools \
+	sys-process/daemontools \
+	sys-fs/ncdu \
+	sys-apps/memtester \
+	sys-apps/memtest86+ \
+	app-misc/colordiff \
+	sys-fs/hfsutils \
+	sys-fs/hfsplusutils \
+	sys-apps/hdparm
 
 # QEMU options
 QEMU_MEMORY = 2048
@@ -74,8 +134,11 @@ check-deps:
 	@which sudo >/dev/null || { echo "sudo not found"; exit 1; }
 	@test -x /usr/sbin/chroot || test -x /sbin/chroot || { echo "chroot not found"; exit 1; }
 	@which mksquashfs >/dev/null || { echo "squashfs-tools not found"; exit 1; }
-	@which grub-mkrescue >/dev/null || { echo "grub2 not found"; exit 1; }
 	@which xorriso >/dev/null || { echo "xorriso not found"; exit 1; }
+	@if ! command -v grub-mkimage >/dev/null && ! command -v grub2-mkimage >/dev/null; then \
+		echo "grub-mkimage not found"; \
+		exit 1; \
+	fi
 	@which qemu-system-i386 >/dev/null || { echo "qemu not found"; exit 1; }
 
 	@echo "All dependencies are satisfied."
@@ -100,6 +163,8 @@ chroot:
 	@echo "Setting up chroot for $(DISTRO_NAME)..."
 	sudo cp /etc/resolv.conf $(CHROOT_DIR)/etc/
 	sudo mount --bind /dev $(CHROOT_DIR)/dev
+	sudo mkdir -p $(CHROOT_DIR)/dev/pts
+	sudo mount --bind /dev/pts $(CHROOT_DIR)/dev/pts
 	sudo mount --bind /proc $(CHROOT_DIR)/proc
 	sudo mount --bind /sys $(CHROOT_DIR)/sys
 
@@ -108,8 +173,12 @@ install-libero:
 
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "emerge --sync"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'MAKEOPTS=\"-j$(shell nproc)\"' >> /etc/portage/make.conf"
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "mkdir -p /etc/portage/package.use && echo '>=sys-kernel/installkernel-50 dracut' >> /etc/portage/package.use/installkernel"
-	
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "mkdir -p /etc/portage/package.use"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '>=sys-kernel/installkernel-50 dracut' > /etc/portage/package.use/libero"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'net-misc/iputils -filecaps' >> /etc/portage/package.use/libero"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'app-portage/portage-utils -openmp' >> /etc/portage/package.use/libero"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'net-wireless/wpa_supplicant dbus' >> /etc/portage/package.use/libero"
+		
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "sed -i 's/^#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "locale-gen"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "eselect locale set en_US.utf8"
@@ -119,7 +188,7 @@ install-libero:
 
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "mkdir -p /etc/portage/package.accept_keywords"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '=dev-build/cmake-3.31.9-r1 **' >> /etc/portage/package.accept_keywords/cmake"
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "emerge --ask =dev-build/cmake-3.31.9-r1"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "emerge =dev-build/cmake-3.31.9-r1"
 
 	@echo "Setting up GPG verification for binary packages..."
 	
@@ -131,14 +200,10 @@ install-libero:
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'PORTAGE_BINHOST=\"https://distfiles.gentoo.org/releases/x86/binpackages/23.0/i486/\"' >> /etc/portage/make.conf"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'EMERGE_DEFAULT_OPTS=\"--getbinpkg --usepkg\"' >> /etc/portage/make.conf"
 
-	@echo "Installing documentation tools..."
-
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "emerge --ask dev-python/docutils"
-
 	@echo "Installing required Linux Firmware for $(DISTRO_NAME)..."
 
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'sys-kernel/linux-firmware @BINARY-REDISTRIBUTABLE' >> /etc/portage/package.license"
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "emerge --ask sys-kernel/linux-firmware"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "emerge sys-kernel/linux-firmware"
 
 	@echo "Installing required packages for $(DISTRO_NAME)..."
 
@@ -159,7 +224,7 @@ install-libero:
 
 	@echo "Setting up network configuration..."
 
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'nameserver 1.1.1.1' > /etc/resolv.conf"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'nameserver 9.9.9.9' > /etc/resolv.conf"
 
 	@echo "Configuring system for $(DISTRO_NAME)..."
 	sudo sh -c 'echo "$(DISTRO_NAME) $(VERSION)" > $(CHROOT_DIR)/etc/gentoo-release'
@@ -259,6 +324,17 @@ install-libero:
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "git clone --depth=1 https://github.com/amix/vimrc.git /opt/vim_runtime"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "cd /opt/vim_runtime && python update_plugins.py"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "sh /opt/vim_runtime/install_awesome_parameterized.sh /opt/vim_runtime root libero"
+
+	@echo "Setting up Exordium Emacs configuration for libero user..."
+
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "git clone --depth=1 https://github.com/emacs-exordium/exordium.git /home/libero/.emacs.d"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "chown -R libero:libero /home/libero/.emacs.d"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "sudo -u libero emacs --batch -l /home/libero/.emacs.d/init.el --eval='(require (quote package))' --eval='(package-refresh-contents)' --eval='(dolist (pkg package-selected-packages) (unless (package-installed-p pkg) (ignore-errors (package-install pkg))))' --eval='(if (and (fboundp (quote native-comp-available-p)) (native-comp-available-p) (fboundp (quote batch-native-compile))) (progn (message \"Using native compilation...\") (batch-native-compile \"/home/libero/.emacs.d\")) (progn (message \"Native compilation unavailable, using byte compilation...\") (byte-recompile-directory \"/home/libero/.emacs.d\" 0)))'"
+
+	@echo "Setting up Exordium Emacs configuration for root user..."
+
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "git clone --depth=1 https://github.com/emacs-exordium/exordium.git /root/.emacs.d"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "emacs --batch -l /root/.emacs.d/init.el --eval='(require (quote package))' --eval='(package-refresh-contents)' --eval='(dolist (pkg package-selected-packages) (unless (package-installed-p pkg) (ignore-errors (package-install pkg))))' --eval='(if (and (fboundp (quote native-comp-available-p)) (native-comp-available-p) (fboundp (quote batch-native-compile))) (progn (message \"Using native compilation...\") (batch-native-compile \"/root/.emacs.d\")) (progn (message \"Native compilation unavailable, using byte compilation...\") (byte-recompile-directory \"/root/.emacs.d\" 0)))'"
 
 	@ echo "Put scripts folder in Libero GNU/Linux scripts repository..."
 
@@ -385,39 +461,40 @@ build-iso:
 	sudo cp $(CHROOT_DIR)/boot/kernel-* $(ISO_DIR)/boot/vmlinuz
 	sudo cp $(CHROOT_DIR)/boot/initramfs-* $(ISO_DIR)/boot/initrd
 
-	@echo "Creating GRUB boot image with large file support..."
+	@echo "Building GRUB BIOS image for hybrid ISO..."
 
-	if sudo grub-mkrescue --output=$(ISO_NAME) $(ISO_DIR) \
-		--volid="LIBERO_12" \
-		--product-name="$(DISTRO_NAME)" \
-		--product-version="$(VERSION)"; then \
-		echo "ISO created successfully with grub-mkrescue"; \
+	@GRUB_SRC_DIR=$$( \
+		for dir in /usr/lib/grub/i386-pc /lib/grub/i386-pc $(CHROOT_DIR)/usr/lib/grub/i386-pc $(CHROOT_DIR)/lib/grub/i386-pc; do \
+			if [ -d $$dir ]; then echo $$dir; break; fi; \
+		done); \
+	if [ -z "$$GRUB_SRC_DIR" ]; then \
+		echo "GRUB i386-pc modules not found. Install grub2 first."; \
+		exit 1; \
+	fi; \
+	sudo mkdir -p $(ISO_DIR)/boot/grub/i386-pc; \
+	sudo cp -r $$GRUB_SRC_DIR/* $(ISO_DIR)/boot/grub/i386-pc/; \
+	GRUB_MKIMAGE=$$(command -v grub-mkimage || command -v grub2-mkimage); \
+	if [ -z "$$GRUB_MKIMAGE" ]; then \
+		echo "grub-mkimage command not available"; \
+		exit 1; \
+	fi; \
+	sudo $$GRUB_MKIMAGE -d $$GRUB_SRC_DIR -o $(ISO_DIR)/boot/grub/core.img \
+		-O i386-pc -p /boot/grub biosdisk iso9660 part_msdos normal search configfile squash4; \
+	sudo sh -c 'cat '"$$GRUB_SRC_DIR"'/cdboot.img $(ISO_DIR)/boot/grub/core.img > $(ISO_DIR)/boot/grub/eltorito.img'; \
+	HYBRID_SOURCE=$$(if [ -f $$GRUB_SRC_DIR/boot_hybrid.img ]; then echo $$GRUB_SRC_DIR/boot_hybrid.img; elif [ -f /usr/lib/ISOLINUX/isohdpfx.bin ]; then echo /usr/lib/ISOLINUX/isohdpfx.bin; else echo ""; fi); \
+	if [ -n "$$HYBRID_SOURCE" ]; then \
+		HYBRID_FLAGS="-isohybrid-mbr $$HYBRID_SOURCE -isohybrid-gpt-basdat"; \
+		echo "Using $$HYBRID_SOURCE for hybrid ISO support."; \
 	else \
-		echo "grub-mkrescue failed, trying manual GRUB setup with large file support..."; \
-		sudo mkdir -p $(ISO_DIR)/boot/grub/i386-pc; \
-		if [ -d /usr/lib/grub/i386-pc ] && [ -f /usr/lib/grub/i386-pc/moddep.lst ]; then \
-			sudo cp -r /usr/lib/grub/i386-pc/* $(ISO_DIR)/boot/grub/i386-pc/; \
-			sudo grub-mkimage -d /usr/lib/grub/i386-pc -o $(ISO_DIR)/boot/grub/core.img \
-				-O i386-pc -p /boot/grub biosdisk iso9660 configfile normal search; \
-			sudo sh -c 'cat /usr/lib/grub/i386-pc/cdboot.img $(ISO_DIR)/boot/grub/core.img > $(ISO_DIR)/boot/grub/eltorito.img'; \
-		elif [ -d $(CHROOT_DIR)/usr/lib/grub/i386-pc ] && [ -f $(CHROOT_DIR)/usr/lib/grub/i386-pc/moddep.lst ]; then \
-			sudo cp -r $(CHROOT_DIR)/usr/lib/grub/i386-pc/* $(ISO_DIR)/boot/grub/i386-pc/; \
-			sudo grub-mkimage -d $(CHROOT_DIR)/usr/lib/grub/i386-pc -o $(ISO_DIR)/boot/grub/core.img \
-				-O i386-pc -p /boot/grub biosdisk iso9660 configfile normal search; \
-			sudo sh -c 'cat $(CHROOT_DIR)/usr/lib/grub/i386-pc/cdboot.img $(ISO_DIR)/boot/grub/core.img > $(ISO_DIR)/boot/grub/eltorito.img'; \
-		else \
-			echo "GRUB files not found, using xorriso without GRUB boot..."; \
-		fi; \
-		if [ -f $(ISO_DIR)/boot/grub/eltorito.img ]; then \
-			sudo xorriso -as mkisofs -r -J -V "LIBERO_12" \
-				-b boot/grub/eltorito.img -c boot/grub/boot.cat \
-				-no-emul-boot -boot-load-size 4 -boot-info-table \
-				-o $(ISO_NAME) $(ISO_DIR); \
-		else \
-			sudo xorriso -as mkisofs -r -J -V "LIBERO_12" \
-				-o $(ISO_NAME) $(ISO_DIR); \
-		fi; \
-	fi
+		HYBRID_FLAGS=""; \
+		echo "Warning: Hybrid MBR image not found. ISO may not boot from USB."; \
+	fi; \
+	sudo rm -f $(ISO_NAME); \
+	sudo xorriso -as mkisofs -r -J -V "LIBERO_12" \
+		-b boot/grub/eltorito.img -c boot/grub/boot.cat \
+		-no-emul-boot -boot-load-size 4 -boot-info-table \
+		$$HYBRID_FLAGS \
+		-o $(ISO_NAME) $(ISO_DIR)
 
 	@echo "ISO image created: $(ISO_NAME)"
 	@FINAL_SIZE=$$(du -h $(ISO_NAME) | cut -f1); \
@@ -459,7 +536,7 @@ qemu-hd:
 clean:
 	@echo "Cleaning build environment..."
 	
-	sudo umount $(CHROOT_DIR)/dev $(CHROOT_DIR)/proc $(CHROOT_DIR)/sys 2>/dev/null || true
+	sudo umount $(CHROOT_DIR)/dev/pts $(CHROOT_DIR)/dev $(CHROOT_DIR)/proc $(CHROOT_DIR)/sys 2>/dev/null || true
 	sudo rm -rf $(WORK_DIR) $(ISO_NAME) libero-hd.qcow2 || true
 
 help:
