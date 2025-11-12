@@ -233,7 +233,7 @@ install-libero:
 
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "mkdir -p /etc/dracut.conf.d"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'add_dracutmodules+=\" dmsquash-live network base dm systemd overlayfs \"' > /etc/dracut.conf.d/livecd.conf"
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'filesystems+=\" squashfs iso9660 overlay tmpfs ext4 \"' >> /etc/dracut.conf.d/livecd.conf" 
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'filesystems+=\" squashfs iso9660 overlay ext4 \"' >> /etc/dracut.conf.d/livecd.conf"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'drivers+=\" cdrom sr_mod loop dm-mod overlay ata_piix ahci usb_storage uas xhci_hcd xhci_pci ehci_hcd ehci_pci ohci_hcd uhci_hcd sd_mod \"' >> /etc/dracut.conf.d/livecd.conf"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'omit_dracutmodules+=\" plymouth \"' >> /etc/dracut.conf.d/livecd.conf"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'persistent_policy=\"by-label\"' >> /etc/dracut.conf.d/livecd.conf"
