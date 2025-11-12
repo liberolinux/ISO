@@ -3,6 +3,9 @@
 # Maintainer: André Machado
 # License: GPL-3.0
 
+# Use bash for Makefile recipes that rely on arrays and other bashisms.
+SHELL := /bin/bash
+
 DISTRO_NAME = Libero
 VERSION = 1.2
 ARCH = i486
@@ -135,10 +138,7 @@ check-deps:
 	@test -x /usr/sbin/chroot || test -x /sbin/chroot || { echo "chroot not found"; exit 1; }
 	@which mksquashfs >/dev/null || { echo "squashfs-tools not found"; exit 1; }
 	@which xorriso >/dev/null || { echo "xorriso not found"; exit 1; }
-	@if ! command -v grub-mkimage >/dev/null && ! command -v grub2-mkimage >/dev/null; then \
-		echo "grub-mkimage not found"; \
-		exit 1; \
-	fi
+	@which grub-mkrescue >/dev/null || { echo "grub-mkrescue not found"; exit 1; }
 	@which qemu-system-i386 >/dev/null || { echo "qemu not found"; exit 1; }
 
 	@echo "All dependencies are satisfied."
@@ -345,6 +345,7 @@ install-libero:
 	@echo "Enabling network services..."
 
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "systemctl enable dhcpcd.service"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "systemctl enable NetworkManager.service"
 
 	@echo "Configure zram for better performance..."
 
@@ -435,7 +436,7 @@ setup-grub:
 	sudo sh -c 'echo "" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	
 	sudo sh -c 'echo "menuentry \"$(DISTRO_NAME) GNU/Linux - Admin CD\" {" >> $(ISO_DIR)/boot/grub/grub.cfg'
-	sudo sh -c 'echo "    set root=(cd)" >> $(ISO_DIR)/boot/grub/grub.cfg'
+	sudo sh -c 'echo "    search --no-floppy --set=root --label LIBERO_12" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "    linux /boot/vmlinuz root=live:CDLABEL=LIBERO_12 rd.live.image rd.live.dir=/ rd.live.squashimg=image.squashfs libero.mode=admin quiet loglevel=0" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "    initrd /boot/initrd" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "}" >> $(ISO_DIR)/boot/grub/grub.cfg'
@@ -461,40 +462,11 @@ build-iso:
 	sudo cp $(CHROOT_DIR)/boot/kernel-* $(ISO_DIR)/boot/vmlinuz
 	sudo cp $(CHROOT_DIR)/boot/initramfs-* $(ISO_DIR)/boot/initrd
 
-	@echo "Building GRUB BIOS image for hybrid ISO..."
+	@echo "Building hybrid ISO with grub-mkrescue..."
 
-	@GRUB_SRC_DIR=$$( \
-		for dir in /usr/lib/grub/i386-pc /lib/grub/i386-pc $(CHROOT_DIR)/usr/lib/grub/i386-pc $(CHROOT_DIR)/lib/grub/i386-pc; do \
-			if [ -d $$dir ]; then echo $$dir; break; fi; \
-		done); \
-	if [ -z "$$GRUB_SRC_DIR" ]; then \
-		echo "GRUB i386-pc modules not found. Install grub2 first."; \
-		exit 1; \
-	fi; \
-	sudo mkdir -p $(ISO_DIR)/boot/grub/i386-pc; \
-	sudo cp -r $$GRUB_SRC_DIR/* $(ISO_DIR)/boot/grub/i386-pc/; \
-	GRUB_MKIMAGE=$$(command -v grub-mkimage || command -v grub2-mkimage); \
-	if [ -z "$$GRUB_MKIMAGE" ]; then \
-		echo "grub-mkimage command not available"; \
-		exit 1; \
-	fi; \
-	sudo $$GRUB_MKIMAGE -d $$GRUB_SRC_DIR -o $(ISO_DIR)/boot/grub/core.img \
-		-O i386-pc -p /boot/grub biosdisk iso9660 part_msdos normal search configfile squash4; \
-	sudo sh -c 'cat '"$$GRUB_SRC_DIR"'/cdboot.img $(ISO_DIR)/boot/grub/core.img > $(ISO_DIR)/boot/grub/eltorito.img'; \
-	HYBRID_SOURCE=$$(if [ -f $$GRUB_SRC_DIR/boot_hybrid.img ]; then echo $$GRUB_SRC_DIR/boot_hybrid.img; elif [ -f /usr/lib/ISOLINUX/isohdpfx.bin ]; then echo /usr/lib/ISOLINUX/isohdpfx.bin; else echo ""; fi); \
-	if [ -n "$$HYBRID_SOURCE" ]; then \
-		HYBRID_FLAGS="-isohybrid-mbr $$HYBRID_SOURCE -isohybrid-gpt-basdat"; \
-		echo "Using $$HYBRID_SOURCE for hybrid ISO support."; \
-	else \
-		HYBRID_FLAGS=""; \
-		echo "Warning: Hybrid MBR image not found. ISO may not boot from USB."; \
-	fi; \
 	sudo rm -f $(ISO_NAME); \
-	sudo xorriso -as mkisofs -r -J -V "LIBERO_12" \
-		-b boot/grub/eltorito.img -c boot/grub/boot.cat \
-		-no-emul-boot -boot-load-size 4 -boot-info-table \
-		$$HYBRID_FLAGS \
-		-o $(ISO_NAME) $(ISO_DIR)
+	sudo grub-mkrescue -o $(ISO_NAME) $(ISO_DIR) \
+		-R -volid LIBERO_12 -iso-level 3 -J -joliet-long || exit $$?
 
 	@echo "ISO image created: $(ISO_NAME)"
 	@FINAL_SIZE=$$(du -h $(ISO_NAME) | cut -f1); \
