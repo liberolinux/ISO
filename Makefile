@@ -437,7 +437,7 @@ setup-grub:
 	
 	sudo sh -c 'echo "menuentry \"$(DISTRO_NAME) GNU/Linux - Admin CD\" {" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "    search --no-floppy --set=root --label LIBERO_12" >> $(ISO_DIR)/boot/grub/grub.cfg'
-	sudo sh -c 'echo "    linux /boot/vmlinuz root=live:CDLABEL=LIBERO_12 rd.live.image rd.live.dir=/ rd.live.squashimg=image.squashfs libero.mode=admin quiet loglevel=0" >> $(ISO_DIR)/boot/grub/grub.cfg'
+	sudo sh -c 'echo "    linux /boot/vmlinuz root=live:LABEL=LIBERO_12 rd.live.image rd.live.dir=/ rd.live.squashimg=image.squashfs libero.mode=admin quiet loglevel=0" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "    initrd /boot/initrd" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "}" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "" >> $(ISO_DIR)/boot/grub/grub.cfg'
