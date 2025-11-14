@@ -343,6 +343,7 @@ install-libero:
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "mkdir -p /opt/X86"
 	sudo cp -r scripts/* $(CHROOT_DIR)/opt/X86/
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "chmod 775 /opt/X86/*"
+	
 	@echo "Enabling network services..."
 
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "systemctl enable dhcpcd.service"
