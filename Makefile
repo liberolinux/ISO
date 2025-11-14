@@ -23,8 +23,6 @@ STAGE3_TARBALL = stage3-i486-systemd-*.tar.xz
 PORTAGE_SNAPSHOT = portage-latest.tar.xz
 INSTALLER_REPO_URL = https://github.com/liberolinux/Installer
 INSTALLER_DEST = /opt/libero-installer
-INSTALLER_CLONE_DEPTH ?= 1
-ENABLE_LIBERO_INSTALLER ?= 1
 
 # LFS required packages
 LFS_PACKAGES = \
@@ -402,15 +400,15 @@ install-libero:
 	@echo "Libero GNU/Linux packages installed."
 
 prepare-installer: install-libero
-	@if [ "$(ENABLE_LIBERO_INSTALLER)" != "1" ]; then \
-		echo "ENABLE_LIBERO_INSTALLER=$(ENABLE_LIBERO_INSTALLER); skipping installer repository clone."; \
-	else \
-		echo "Cloning Libero installer into $(INSTALLER_DEST)..."; \
-		sudo chroot $(CHROOT_DIR) /bin/bash -c "rm -rf $(INSTALLER_DEST) && git clone --depth=$(INSTALLER_CLONE_DEPTH) $(INSTALLER_REPO_URL) $(INSTALLER_DEST)"; \
-		echo "Libero installer cloned to $(INSTALLER_DEST). Compiling..."; \
-		sudo chroot $(CHROOT_DIR) /bin/bash -c "cd $(INSTALLER_DEST) && make"; \
-		echo "Libero installer compiled."; \
-	fi
+	@echo "Cloning Libero installer into $(INSTALLER_DEST)..."
+
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "git clone $(INSTALLER_REPO_URL) $(INSTALLER_DEST)"
+
+	@echo "Libero installer cloned to $(INSTALLER_DEST). Compiling..."
+
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "cd $(INSTALLER_DEST) && make"
+
+	@echo "Libero installer compiled."
 
 size-check:
 	@echo "=== Size Analysis ==="
