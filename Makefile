@@ -21,6 +21,10 @@ STAGE3_DIR = $(WORK_DIR)/stage3
 GENTOO_MIRROR = https://distfiles.gentoo.org/releases/x86/autobuilds
 STAGE3_TARBALL = stage3-i486-systemd-*.tar.xz
 PORTAGE_SNAPSHOT = portage-latest.tar.xz
+INSTALLER_REPO_URL = https://github.com/liberolinux/Installer
+INSTALLER_DEST = /opt/libero-installer
+INSTALLER_CLONE_DEPTH ?= 1
+ENABLE_LIBERO_INSTALLER ?= 1
 
 # LFS required packages
 LFS_PACKAGES = \
@@ -123,7 +127,7 @@ QEMU_MEMORY = 2048
 QEMU_CPU = qemu32
 QEMU_OPTS = -m $(QEMU_MEMORY) -cpu $(QEMU_CPU) -enable-kvm -boot d -netdev user,id=net0 -device e1000,netdev=net0
 
-.PHONY: all check-deps download prepare chroot install-libero setup-grub squashfs build-iso debug-iso qemu qemu-hd clean help version size-check
+.PHONY: all check-deps download prepare chroot install-libero setup-grub squashfs build-iso debug-iso qemu qemu-hd clean help version size-check prepare-installer
 
 all: check-deps download prepare chroot install-libero setup-grub squashfs build-iso
 
@@ -341,11 +345,31 @@ install-libero:
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "mkdir -p /opt/X86"
 	sudo cp -r scripts/* $(CHROOT_DIR)/opt/X86/
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "chmod 775 /opt/X86/*"
-
 	@echo "Enabling network services..."
 
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "systemctl enable dhcpcd.service"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "systemctl enable NetworkManager.service"
+
+	@echo "Setting up Libero Installer service..."
+
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "mkdir -p /etc/systemd/system"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '[Unit]' > /etc/systemd/system/libero-installer.service"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'Description=Libero Gentoo Installer' >> /etc/systemd/system/libero-installer.service"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'ConditionKernelCommandLine=libero.mode=installer' >> /etc/systemd/system/libero-installer.service"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'After=network.target systemd-user-sessions.service' >> /etc/systemd/system/libero-installer.service"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '' >> /etc/systemd/system/libero-installer.service"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '[Service]' >> /etc/systemd/system/libero-installer.service"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'Type=simple' >> /etc/systemd/system/libero-installer.service"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'TTYPath=/dev/tty1' >> /etc/systemd/system/libero-installer.service"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'StandardInput=tty' >> /etc/systemd/system/libero-installer.service"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'StandardOutput=journal' >> /etc/systemd/system/libero-installer.service"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'ExecStart=/opt/libero-installer/libero-installer' >> /etc/systemd/system/libero-installer.service"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'Restart=on-failure' >> /etc/systemd/system/libero-installer.service"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '' >> /etc/systemd/system/libero-installer.service"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '[Install]' >> /etc/systemd/system/libero-installer.service"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'WantedBy=multi-user.target' >> /etc/systemd/system/libero-installer.service"
+	
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "systemctl enable libero-installer.service"
 
 	@echo "Configure zram for better performance..."
 
@@ -376,6 +400,17 @@ install-libero:
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "systemctl enable zram-swap.service"
 
 	@echo "Libero GNU/Linux packages installed."
+
+prepare-installer: install-libero
+	@if [ "$(ENABLE_LIBERO_INSTALLER)" != "1" ]; then \
+		echo "ENABLE_LIBERO_INSTALLER=$(ENABLE_LIBERO_INSTALLER); skipping installer repository clone."; \
+	else \
+		echo "Cloning Libero installer into $(INSTALLER_DEST)..."; \
+		sudo chroot $(CHROOT_DIR) /bin/bash -c "rm -rf $(INSTALLER_DEST) && git clone --depth=$(INSTALLER_CLONE_DEPTH) $(INSTALLER_REPO_URL) $(INSTALLER_DEST)"; \
+		echo "Libero installer cloned to $(INSTALLER_DEST). Compiling..."; \
+		sudo chroot $(CHROOT_DIR) /bin/bash -c "cd $(INSTALLER_DEST) && make"; \
+		echo "Libero installer compiled."; \
+	fi
 
 size-check:
 	@echo "=== Size Analysis ==="
@@ -438,6 +473,12 @@ setup-grub:
 	sudo sh -c 'echo "menuentry \"$(DISTRO_NAME) GNU/Linux - Admin CD\" {" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "    search --no-floppy --set=root --label LIBERO_12" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "    linux /boot/vmlinuz root=live:LABEL=LIBERO_12 rd.live.image rd.live.dir=/ rd.live.squashimg=image.squashfs libero.mode=admin quiet loglevel=0" >> $(ISO_DIR)/boot/grub/grub.cfg'
+	sudo sh -c 'echo "    initrd /boot/initrd" >> $(ISO_DIR)/boot/grub/grub.cfg'
+	sudo sh -c 'echo "}" >> $(ISO_DIR)/boot/grub/grub.cfg'
+	sudo sh -c 'echo "" >> $(ISO_DIR)/boot/grub/grub.cfg'
+	sudo sh -c 'echo "menuentry \"$(DISTRO_NAME) GNU/Linux - Installer\" {" >> $(ISO_DIR)/boot/grub/grub.cfg'
+	sudo sh -c 'echo "    search --no-floppy --set=root --label LIBERO_12" >> $(ISO_DIR)/boot/grub/grub.cfg'
+	sudo sh -c 'echo "    linux /boot/vmlinuz root=live:LABEL=LIBERO_12 rd.live.image rd.live.dir=/ rd.live.squashimg=image.squashfs libero.mode=installer quiet loglevel=0" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "    initrd /boot/initrd" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "}" >> $(ISO_DIR)/boot/grub/grub.cfg'
 	sudo sh -c 'echo "" >> $(ISO_DIR)/boot/grub/grub.cfg'
@@ -520,6 +561,7 @@ help:
 	@echo "  make prepare      - Prepare the chroot environment"
 	@echo "  make chroot       - Set up the chroot environment"
 	@echo "  make install-libero - Install Libero GNU/Linux packages"
+	@echo "  make prepare-installer - Clone Libero installer sources into the ISO chroot"
 	@echo "  make setup-grub   - Set up GRUB configuration"
 	@echo "  make squashfs     - Create Squashfs image"
 	@echo "  make build-iso    - Build the ISO image"
