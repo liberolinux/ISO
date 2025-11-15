@@ -21,8 +21,6 @@ STAGE3_DIR = $(WORK_DIR)/stage3
 GENTOO_MIRROR = https://distfiles.gentoo.org/releases/x86/autobuilds
 STAGE3_TARBALL = stage3-i486-systemd-*.tar.xz
 PORTAGE_SNAPSHOT = portage-latest.tar.xz
-INSTALLER_REPO_URL = https://github.com/liberolinux/Installer
-INSTALLER_DEST = /opt/libero-installer
 
 # LFS required packages
 LFS_PACKAGES = \
@@ -401,13 +399,13 @@ install-libero:
 	@echo "Libero GNU/Linux packages installed."
 
 prepare-installer: install-libero
-	@echo "Cloning Libero installer into $(INSTALLER_DEST)..."
+	@echo "Cloning Libero installer into /opt/libero-installer..."
 
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "git clone $(INSTALLER_REPO_URL) $(INSTALLER_DEST)"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "git clone https://github.com/liberolinux/Installer /opt/libero-installer"
 
-	@echo "Libero installer cloned to $(INSTALLER_DEST). Compiling..."
+	@echo "Libero installer cloned to /opt/libero-installer. Compiling..."
 
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "cd $(INSTALLER_DEST) && make"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "cd /opt/libero-installer && make"
 
 	@echo "Libero installer compiled."
 
