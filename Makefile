@@ -125,7 +125,7 @@ QEMU_OPTS = -m $(QEMU_MEMORY) -cpu $(QEMU_CPU) -enable-kvm -boot d -netdev user,
 
 .PHONY: all check-deps download prepare chroot install-libero setup-grub squashfs build-iso debug-iso qemu qemu-hd clean help version size-check prepare-installer
 
-all: check-deps download prepare chroot install-libero setup-grub squashfs build-iso
+all: check-deps download prepare chroot install-libero prepare-installer setup-grub squashfs build-iso
 
 check-deps:
 	@echo "Checking for required dependencies..."
