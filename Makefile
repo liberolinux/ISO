@@ -207,7 +207,7 @@ install-libero:
 
 	@echo "Installing required packages for $(DISTRO_NAME)..."
 
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "emerge --ask $(LFS_PACKAGES)"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "emerge $(LFS_PACKAGES)"
 
 	@echo "Configuring network and hostname..."
 
@@ -336,12 +336,6 @@ install-libero:
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "git clone --depth=1 https://github.com/emacs-exordium/exordium.git /root/.emacs.d"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "emacs --batch -l /root/.emacs.d/init.el --eval='(require (quote package))' --eval='(package-refresh-contents)' --eval='(dolist (pkg package-selected-packages) (unless (package-installed-p pkg) (ignore-errors (package-install pkg))))' --eval='(if (and (fboundp (quote native-comp-available-p)) (native-comp-available-p) (fboundp (quote batch-native-compile))) (progn (message \"Using native compilation...\") (batch-native-compile \"/root/.emacs.d\")) (progn (message \"Native compilation unavailable, using byte compilation...\") (byte-recompile-directory \"/root/.emacs.d\" 0)))'"
 
-	@ echo "Put scripts folder in Libero GNU/Linux scripts repository..."
-
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "mkdir -p /opt/X86"
-	sudo cp -r scripts/* $(CHROOT_DIR)/opt/X86/
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "chmod 775 /opt/X86/*"
-	
 	@echo "Enabling network services..."
 
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "systemctl enable dhcpcd.service"
