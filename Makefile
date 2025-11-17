@@ -354,7 +354,7 @@ install-libero:
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'TTYPath=/dev/tty1' >> /etc/systemd/system/libero-installer.service"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'StandardInput=tty' >> /etc/systemd/system/libero-installer.service"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'StandardOutput=journal' >> /etc/systemd/system/libero-installer.service"
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'ExecStart=/opt/libero-installer/libero-installer' >> /etc/systemd/system/libero-installer.service"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'ExecStart=/opt/LGLI/libero-installer' >> /etc/systemd/system/libero-installer.service"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'Restart=on-failure' >> /etc/systemd/system/libero-installer.service"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '' >> /etc/systemd/system/libero-installer.service"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '[Install]' >> /etc/systemd/system/libero-installer.service"
@@ -395,11 +395,13 @@ install-libero:
 prepare-installer: install-libero
 	@echo "Cloning Libero installer into /opt/libero-installer..."
 
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "git clone https://github.com/liberolinux/Installer /opt/libero-installer"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "git clone https://github.com/liberolinux/LGLI /opt/LGLI"
 
-	@echo "Libero installer cloned to /opt/libero-installer. Compiling..."
+	@echo "Libero installer cloned to /opt/LGLI Compiling..."
 
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "cd /opt/libero-installer && make"
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "cd /opt/LGLI && make"
+
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "chmod +x /opt/LGLI/libero-installer"
 
 	@echo "Libero installer compiled."
 
