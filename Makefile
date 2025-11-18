@@ -341,17 +341,17 @@ install-libero:
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "systemctl enable dhcpcd.service"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "systemctl enable NetworkManager.service"
 
-	@echo "Cloning Libero installer into /opt/libero-installer..."
+	@echo "Cloning Libero GNU/Linux installer into /opt/libero-installer..."
 
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "git clone https://github.com/liberolinux/LGLI /opt/LGLI"
 
-	@echo "Libero installer cloned to /opt/LGLI Compiling..."
-
+	@echo "Libero GNU/Linux installer cloned to /opt/LGLI Compiling..."
+	
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "cd /opt/LGLI && make"
 
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "chmod +x /opt/LGLI/libero-installer"
 
-	@echo "Libero installer compiled."
+	@echo "Libero GNU/Linux installer compiled."
 
 	@echo "Setting up Libero Installer service..."
 
