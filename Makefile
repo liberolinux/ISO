@@ -123,9 +123,9 @@ QEMU_MEMORY = 2048
 QEMU_CPU = qemu32
 QEMU_OPTS = -m $(QEMU_MEMORY) -cpu $(QEMU_CPU) -enable-kvm -boot d -netdev user,id=net0 -device e1000,netdev=net0
 
-.PHONY: all check-deps download prepare chroot install-libero setup-grub squashfs build-iso debug-iso qemu qemu-hd clean help version size-check prepare-installer
+.PHONY: all check-deps download prepare chroot install-libero setup-grub squashfs build-iso debug-iso qemu qemu-hd clean help version size-check
 
-all: check-deps download prepare chroot install-libero prepare-installer setup-grub squashfs build-iso
+all: check-deps download prepare chroot install-libero setup-grub squashfs build-iso
 
 check-deps:
 	@echo "Checking for required dependencies..."
@@ -341,6 +341,18 @@ install-libero:
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "systemctl enable dhcpcd.service"
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "systemctl enable NetworkManager.service"
 
+	@echo "Cloning Libero installer into /opt/libero-installer..."
+
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "git clone https://github.com/liberolinux/LGLI /opt/LGLI"
+
+	@echo "Libero installer cloned to /opt/LGLI Compiling..."
+
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "cd /opt/LGLI && make"
+
+	sudo chroot $(CHROOT_DIR) /bin/bash -c "chmod +x /opt/LGLI/libero-installer"
+
+	@echo "Libero installer compiled."
+
 	@echo "Setting up Libero Installer service..."
 
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "mkdir -p /etc/systemd/system"
@@ -391,19 +403,6 @@ install-libero:
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "systemctl enable zram-swap.service"
 
 	@echo "Libero GNU/Linux packages installed."
-
-prepare-installer: install-libero
-	@echo "Cloning Libero installer into /opt/libero-installer..."
-
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "git clone https://github.com/liberolinux/LGLI /opt/LGLI"
-
-	@echo "Libero installer cloned to /opt/LGLI Compiling..."
-
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "cd /opt/LGLI && make"
-
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "chmod +x /opt/LGLI/libero-installer"
-
-	@echo "Libero installer compiled."
 
 size-check:
 	@echo "=== Size Analysis ==="
