@@ -355,22 +355,24 @@ install-libero:
 
 	@echo "Setting up Libero Installer service..."
 
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "mkdir -p /etc/systemd/system"
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '[Unit]' > /etc/systemd/system/libero-installer.service"
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'Description=Libero Gentoo Installer' >> /etc/systemd/system/libero-installer.service"
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'ConditionKernelCommandLine=libero.mode=installer' >> /etc/systemd/system/libero-installer.service"
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'After=network.target systemd-user-sessions.service' >> /etc/systemd/system/libero-installer.service"
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '' >> /etc/systemd/system/libero-installer.service"
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '[Service]' >> /etc/systemd/system/libero-installer.service"
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'Type=simple' >> /etc/systemd/system/libero-installer.service"
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'TTYPath=/dev/tty1' >> /etc/systemd/system/libero-installer.service"
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'StandardInput=tty' >> /etc/systemd/system/libero-installer.service"
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'StandardOutput=journal' >> /etc/systemd/system/libero-installer.service"
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'ExecStart=/opt/LGLI/libero-installer' >> /etc/systemd/system/libero-installer.service"
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'Restart=on-failure' >> /etc/systemd/system/libero-installer.service"
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '' >> /etc/systemd/system/libero-installer.service"
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo '[Install]' >> /etc/systemd/system/libero-installer.service"
-	sudo chroot $(CHROOT_DIR) /bin/bash -c "echo 'WantedBy=multi-user.target' >> /etc/systemd/system/libero-installer.service"
+	sudo mkdir -p $(CHROOT_DIR)/etc/systemd/system
+	sudo sh -c 'echo "[Unit]" > $(CHROOT_DIR)/etc/systemd/system/libero-installer.service'
+	sudo sh -c 'echo "Description=Libero Installer" >> $(CHROOT_DIR)/etc/systemd/system/libero-installer.service'
+	sudo sh -c 'echo "After=getty@tty1.service multi-user.target" >> $(CHROOT_DIR)/etc/systemd/system/libero-installer.service'
+	sudo sh -c 'echo "Wants=getty@tty1.service" >> $(CHROOT_DIR)/etc/systemd/system/libero-installer.service'
+	sudo sh -c 'echo "ConditionKernelCommandLine=libero.mode=installer" >> $(CHROOT_DIR)/etc/systemd/system/libero-installer.service'
+	sudo sh -c 'echo "" >> $(CHROOT_DIR)/etc/systemd/system/libero-installer.service'
+	sudo sh -c 'echo "[Service]" >> $(CHROOT_DIR)/etc/systemd/system/libero-installer.service'
+	sudo sh -c 'echo "Type=idle" >> $(CHROOT_DIR)/etc/systemd/system/libero-installer.service'
+	sudo sh -c 'echo "WorkingDirectory=/opt/LGLI" >> $(CHROOT_DIR)/etc/systemd/system/libero-installer.service'
+	sudo sh -c 'echo "ExecStart=/opt/LGLI/libero-installer" >> $(CHROOT_DIR)/etc/systemd/system/libero-installer.service'
+	sudo sh -c 'echo "StandardInput=tty" >> $(CHROOT_DIR)/etc/systemd/system/libero-installer.service'
+	sudo sh -c 'echo "StandardOutput=tty" >> $(CHROOT_DIR)/etc/systemd/system/libero-installer.service'
+	sudo sh -c 'echo "TTYPath=/dev/tty1" >> $(CHROOT_DIR)/etc/systemd/system/libero-installer.service'
+	sudo sh -c 'echo "Restart=no" >> $(CHROOT_DIR)/etc/systemd/system/libero-installer.service'
+	sudo sh -c 'echo "" >> $(CHROOT_DIR)/etc/systemd/system/libero-installer.service'
+	sudo sh -c 'echo "[Install]" >> $(CHROOT_DIR)/etc/systemd/system/libero-installer.service'
+	sudo sh -c 'echo "WantedBy=multi-user.target" >> $(CHROOT_DIR)/etc/systemd/system/libero-installer.service'
 	
 	sudo chroot $(CHROOT_DIR) /bin/bash -c "systemctl enable libero-installer.service"
 
